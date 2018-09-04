@@ -1,6 +1,6 @@
 use {std};
 
-#[derive(Debug,PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct SortedVec <T : PartialOrd> {
   vec : Vec <T>
 }
@@ -13,10 +13,6 @@ impl <T : PartialOrd> SortedVec <T> {
   #[inline]
   pub fn with_capacity (capacity : usize) -> Self {
     SortedVec { vec: Vec::with_capacity (capacity) }
-  }
-  #[inline]
-  pub fn as_slice (&self) -> &[T] {
-    self.vec.as_slice()
   }
   /// Insert an element into sorted position, returning the order index at which
   /// it was placed.
@@ -62,14 +58,6 @@ impl <T : PartialOrd> SortedVec <T> {
     self.vec.clear()
   }
   #[inline]
-  pub fn len (&self) -> usize {
-    self.vec.len()
-  }
-  #[inline]
-  pub fn is_empty (&self) -> bool {
-    self.vec.is_empty()
-  }
-  #[inline]
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
@@ -87,8 +75,9 @@ impl <T : PartialOrd> Default for SortedVec <T> {
   }
 }
 
-impl <T : PartialOrd> AsRef <Vec <T>> for SortedVec <T> {
-  fn as_ref (&self) -> &Vec <T> {
+impl <T : PartialOrd> std::ops::Deref for SortedVec <T> {
+  type Target = Vec <T>;
+  fn deref (&self) -> &Vec <T> {
     &self.vec
   }
 }

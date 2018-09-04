@@ -1,6 +1,6 @@
 pub mod partial;
 
-#[derive(Debug,PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct SortedVec <T : Ord> {
   vec : Vec <T>
 }
@@ -51,12 +51,6 @@ impl <T : Ord> SortedVec <T> {
   pub fn clear (&mut self) {
     self.vec.clear()
   }
-  pub fn len (&self) -> usize {
-    self.vec.len()
-  }
-  pub fn is_empty (&self) -> bool {
-    self.vec.is_empty()
-  }
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
@@ -68,8 +62,9 @@ impl <T : Ord> Default for SortedVec <T> {
   }
 }
 
-impl <T : Ord> AsRef <Vec <T>> for SortedVec <T> {
-  fn as_ref (&self) -> &Vec <T> {
+impl <T : Ord> std::ops::Deref for SortedVec <T> {
+  type Target = Vec <T>;
+  fn deref (&self) -> &Vec <T> {
     &self.vec
   }
 }
