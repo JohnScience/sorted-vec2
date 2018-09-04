@@ -1,0 +1,6 @@
+[package]
+name = "sorted-vec"
+version = "0.1.0"
+authors = ["Shane Pearman <spearman@gitlab.com>"]
+
+[dependencies]
