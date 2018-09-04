@@ -1,10 +1,16 @@
+//! Sorted vectors of types implementing `PartialOrd`.
+//!
+//! It is a runtime panic if an incomparable element is compared.
+
 use {std};
 
+/// Forward sorted vector
 #[derive(Clone,Debug,PartialEq)]
 pub struct SortedVec <T : PartialOrd> {
   vec : Vec <T>
 }
 
+/// Reverse sorted vector
 #[derive(Clone,Debug,PartialEq)]
 pub struct ReverseSortedVec <T : PartialOrd> {
   vec : Vec <T>
@@ -23,6 +29,12 @@ impl <T : PartialOrd> SortedVec <T> {
   #[inline]
   pub fn with_capacity (capacity : usize) -> Self {
     SortedVec { vec: Vec::with_capacity (capacity) }
+  }
+  /// Uses `sort_unstable_by()` to sort in place.
+  #[inline]
+  pub fn from_unsorted (mut vec : Vec <T>) -> Self {
+    vec.sort_unstable_by (partial_compare);
+    SortedVec { vec }
   }
   /// Insert an element into sorted position, returning the order index at which
   /// it was placed.
@@ -60,6 +72,10 @@ impl <T : PartialOrd> SortedVec <T> {
     self.vec.remove (index)
   }
   #[inline]
+  pub fn binary_search (&self, x : &T) -> Result <usize, usize> {
+    self.vec.binary_search_by (|y| partial_compare (y, x))
+  }
+  #[inline]
   pub fn pop (&mut self) -> Option <T> {
     self.vec.pop()
   }
@@ -93,6 +109,12 @@ impl <T : PartialOrd> ReverseSortedVec <T> {
   pub fn with_capacity (capacity : usize) -> Self {
     ReverseSortedVec { vec: Vec::with_capacity (capacity) }
   }
+  /// Uses `sort_unstable_by()` to sort in place.
+  #[inline]
+  pub fn from_unsorted (mut vec : Vec <T>) -> Self {
+    vec.sort_unstable_by (|x,y| partial_compare (x,y).reverse());
+    ReverseSortedVec { vec }
+  }
   /// Insert an element into (reverse) sorted position, returning the order
   /// index at which it was placed.
   ///
@@ -125,6 +147,10 @@ impl <T : PartialOrd> ReverseSortedVec <T> {
   #[inline]
   pub fn remove_index (&mut self, index : usize) -> T {
     self.vec.remove (index)
+  }
+  #[inline]
+  pub fn binary_search (&self, x : &T) -> Result <usize, usize> {
+    self.vec.binary_search_by (|y| partial_compare (y, x).reverse())
   }
   #[inline]
   pub fn pop (&mut self) -> Option <T> {
@@ -164,6 +190,10 @@ mod tests {
     assert_eq!(v.len(), 4);
     v.dedup();
     assert_eq!(v.len(), 3);
+    assert_eq!(v.binary_search (&3.0), Ok (0));
+    assert_eq!(*SortedVec::from_unsorted (
+      vec![5.0, -10.0, 99.0, -11.0, 2.0, 17.0, 10.0]),
+      vec![-11.0, -10.0, 2.0, 5.0, 10.0, 17.0, 99.0]);
   }
 
   #[test]
@@ -177,5 +207,9 @@ mod tests {
     assert_eq!(v.len(), 5);
     v.dedup();
     assert_eq!(v.len(), 4);
+    assert_eq!(v.binary_search (&3.0), Ok (3));
+    assert_eq!(*ReverseSortedVec::from_unsorted (
+      vec![5.0, -10.0, 99.0, -11.0, 2.0, 17.0, 10.0]),
+      vec![99.0, 17.0, 10.0, 5.0, 2.0, -10.0, -11.0]);
   }
 }

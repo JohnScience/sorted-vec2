@@ -1,10 +1,21 @@
+//! Sorted vectors.
+//!
+//! - `SortedVec` -- sorted from least to greatest
+//! - `ReverseSortedVec` -- sorted from greatest to least
+//!
+//! The `partial` module provides sorted vectors of types that only implement
+//! `PartialOrd` where comparison of incomparable elements results in runtime
+//! panic.
+
 pub mod partial;
 
+/// Forward sorted vector
 #[derive(Clone,Debug,PartialEq)]
 pub struct SortedVec <T : Ord> {
   vec : Vec <T>
 }
 
+/// Reverse sorted vector
 #[derive(Clone,Debug,PartialEq)]
 pub struct ReverseSortedVec <T : Ord> {
   vec : Vec <T>
@@ -18,6 +29,12 @@ impl <T : Ord> SortedVec <T> {
   #[inline]
   pub fn with_capacity (capacity : usize) -> Self {
     SortedVec { vec: Vec::with_capacity (capacity) }
+  }
+  /// Uses `sort_unstable()` to sort in place.
+  #[inline]
+  pub fn from_unsorted (mut vec : Vec <T>) -> Self {
+    vec.sort_unstable();
+    SortedVec { vec }
   }
   /// Insert an element into sorted position, returning the order index at which
   /// it was placed.
@@ -81,6 +98,12 @@ impl <T : Ord> ReverseSortedVec <T> {
   pub fn with_capacity (capacity : usize) -> Self {
     ReverseSortedVec { vec: Vec::with_capacity (capacity) }
   }
+  /// Uses `sort_unstable_by()` to sort in place.
+  #[inline]
+  pub fn from_unsorted (mut vec : Vec <T>) -> Self {
+    vec.sort_unstable_by (|x,y| x.cmp (y).reverse());
+    ReverseSortedVec { vec }
+  }
   /// Insert an element into (reverse) sorted position, returning the order
   /// index at which it was placed.
   ///
@@ -113,6 +136,10 @@ impl <T : Ord> ReverseSortedVec <T> {
   #[inline]
   pub fn remove_index (&mut self, index : usize) -> T {
     self.vec.remove (index)
+  }
+  #[inline]
+  pub fn binary_search (&self, x : &T) -> Result <usize, usize> {
+    self.vec.binary_search_by (|y| y.cmp (&x).reverse())
   }
   #[inline]
   pub fn pop (&mut self) -> Option <T> {
@@ -152,6 +179,10 @@ mod tests {
     assert_eq!(v.len(), 4);
     v.dedup();
     assert_eq!(v.len(), 3);
+    assert_eq!(v.binary_search (&3), Ok (0));
+    assert_eq!(*SortedVec::from_unsorted (
+      vec![5, -10, 99, -11, 2, 17, 10]),
+      vec![-11, -10, 2, 5, 10, 17, 99]);
   }
 
   #[test]
@@ -165,5 +196,9 @@ mod tests {
     assert_eq!(v.len(), 5);
     v.dedup();
     assert_eq!(v.len(), 4);
+    assert_eq!(v.binary_search (&3), Ok (3));
+    assert_eq!(*ReverseSortedVec::from_unsorted (
+      vec![5, -10, 99, -11, 2, 17, 10]),
+      vec![99, 17, 10, 5, 2, -10, -11]);
   }
 }
