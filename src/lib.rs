@@ -7,15 +7,20 @@
 //! `PartialOrd` where comparison of incomparable elements results in runtime
 //! panic.
 
+#[cfg(feature = "serde")]
+#[macro_use] extern crate serde;
+
 pub mod partial;
 
 /// Forward sorted vector
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone,Debug,PartialEq)]
 pub struct SortedVec <T : Ord> {
   vec : Vec <T>
 }
 
 /// Reverse sorted vector
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone,Debug,PartialEq)]
 pub struct ReverseSortedVec <T : Ord> {
   vec : Vec <T>

@@ -1,6 +1,6 @@
 [package]
 name = "sorted-vec"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Shane Pearman <spearman@gitlab.com>"]
 license = "Apache-2.0"
 description = "Create and maintain sorted vectors"
@@ -8,3 +8,4 @@ repository = "https://gitlab.com/spearman/sorted-vec"
 readme = "README.md"
 
 [dependencies]
+serde = { version = "1.*", features = [ "derive" ], optional = true }
