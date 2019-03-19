@@ -2,6 +2,8 @@
 
 > Create and maintain sorted vectors.
 
+[Documentation](https://docs.rs/sorted-vec)
+
 ```
 let mut v = SortedVec::new();
 assert_eq!(v.insert (5), Ok (0));
