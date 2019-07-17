@@ -78,6 +78,7 @@ impl <T : Ord> SortedVec <T> {
   pub fn clear (&mut self) {
     self.vec.clear()
   }
+  #[inline]
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
@@ -154,6 +155,7 @@ impl <T : Ord> ReverseSortedVec <T> {
   pub fn clear (&mut self) {
     self.vec.clear()
   }
+  #[inline]
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
