@@ -87,6 +87,12 @@ impl <T : PartialOrd> SortedVec <T> {
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
+  #[inline]
+  pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
+    R : std::ops::RangeBounds <usize>
+  {
+    self.vec.drain (range)
+  }
 }
 impl <T : PartialOrd> Default for SortedVec <T> {
   fn default() -> Self {
@@ -97,6 +103,13 @@ impl <T : PartialOrd> std::ops::Deref for SortedVec <T> {
   type Target = Vec <T>;
   fn deref (&self) -> &Vec <T> {
     &self.vec
+  }
+}
+impl <T : PartialOrd> Extend <T> for SortedVec <T> {
+  fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
+    for t in iter {
+      let _ = self.insert (t);
+    }
   }
 }
 
@@ -163,6 +176,12 @@ impl <T : PartialOrd> ReverseSortedVec <T> {
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
+  #[inline]
+  pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
+    R : std::ops::RangeBounds <usize>
+  {
+    self.vec.drain (range)
+  }
 }
 impl <T : PartialOrd> Default for ReverseSortedVec <T> {
   fn default() -> Self {
@@ -173,6 +192,13 @@ impl <T : PartialOrd> std::ops::Deref for ReverseSortedVec <T> {
   type Target = Vec <T>;
   fn deref (&self) -> &Vec <T> {
     &self.vec
+  }
+}
+impl <T : PartialOrd> Extend <T> for ReverseSortedVec <T> {
+  fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
+    for t in iter {
+      let _ = self.insert (t);
+    }
   }
 }
 
@@ -192,7 +218,12 @@ mod tests {
     assert_eq!(v.len(), 3);
     assert_eq!(v.binary_search (&3.0), Ok (0));
     assert_eq!(*SortedVec::from_unsorted (
-      vec![5.0, -10.0, 99.0, -11.0, 2.0, 17.0, 10.0]),
+      vec![  5.0, -10.0, 99.0, -11.0,  2.0, 17.0, 10.0]),
+      vec![-11.0, -10.0,  2.0,   5.0, 10.0, 17.0, 99.0]);
+    let mut v = SortedVec::new();
+    v.extend(vec![5.0, -10.0, 99.0, -11.0, 2.0, 17.0, 10.0].into_iter());
+    assert_eq!(
+      v.drain(..).collect::<Vec <f32>>(),
       vec![-11.0, -10.0, 2.0, 5.0, 10.0, 17.0, 99.0]);
   }
 
@@ -209,7 +240,12 @@ mod tests {
     assert_eq!(v.len(), 4);
     assert_eq!(v.binary_search (&3.0), Ok (3));
     assert_eq!(*ReverseSortedVec::from_unsorted (
-      vec![5.0, -10.0, 99.0, -11.0, 2.0, 17.0, 10.0]),
+      vec![5.0, -10.0, 99.0, -11.0, 2.0,  17.0,  10.0]),
+      vec![99.0, 17.0, 10.0,   5.0, 2.0, -10.0, -11.0]);
+    let mut v = ReverseSortedVec::new();
+    v.extend(vec![5.0, -10.0, 99.0, -11.0, 2.0, 17.0, 10.0].into_iter());
+    assert_eq!(
+      v.drain(..).collect::<Vec <f32>>(),
       vec![99.0, 17.0, 10.0, 5.0, 2.0, -10.0, -11.0]);
   }
 }

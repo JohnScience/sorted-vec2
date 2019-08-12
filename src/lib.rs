@@ -82,6 +82,12 @@ impl <T : Ord> SortedVec <T> {
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
+  #[inline]
+  pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
+    R : std::ops::RangeBounds <usize>
+  {
+    self.vec.drain (range)
+  }
 }
 impl <T : Ord> Default for SortedVec <T> {
   fn default() -> Self {
@@ -92,6 +98,13 @@ impl <T : Ord> std::ops::Deref for SortedVec <T> {
   type Target = Vec <T>;
   fn deref (&self) -> &Vec <T> {
     &self.vec
+  }
+}
+impl <T : Ord> Extend <T> for SortedVec <T> {
+  fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
+    for t in iter {
+      let _ = self.insert (t);
+    }
   }
 }
 
@@ -159,6 +172,12 @@ impl <T : Ord> ReverseSortedVec <T> {
   pub fn dedup (&mut self) {
     self.vec.dedup();
   }
+  #[inline]
+  pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
+    R : std::ops::RangeBounds <usize>
+  {
+    self.vec.drain (range)
+  }
 }
 impl <T : Ord> Default for ReverseSortedVec <T> {
   fn default() -> Self {
@@ -169,6 +188,13 @@ impl <T : Ord> std::ops::Deref for ReverseSortedVec <T> {
   type Target = Vec <T>;
   fn deref (&self) -> &Vec <T> {
     &self.vec
+  }
+}
+impl <T : Ord> Extend <T> for ReverseSortedVec <T> {
+  fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
+    for t in iter {
+      let _ = self.insert (t);
+    }
   }
 }
 
@@ -190,6 +216,10 @@ mod tests {
     assert_eq!(*SortedVec::from_unsorted (
       vec![5, -10, 99, -11, 2, 17, 10]),
       vec![-11, -10, 2, 5, 10, 17, 99]);
+    let mut v = SortedVec::new();
+    v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
+    assert_eq!(
+      v.drain(..).collect::<Vec <i32>>(), vec![-11, -10, 2, 5, 10, 17, 99]);
   }
 
   #[test]
@@ -207,5 +237,9 @@ mod tests {
     assert_eq!(*ReverseSortedVec::from_unsorted (
       vec![5, -10, 99, -11, 2, 17, 10]),
       vec![99, 17, 10, 5, 2, -10, -11]);
+    let mut v = ReverseSortedVec::new();
+    v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
+    assert_eq!(
+      v.drain(..).collect::<Vec <i32>>(), vec![99, 17, 10, 5, 2, -10, -11]);
   }
 }
