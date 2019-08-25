@@ -1,5 +1,7 @@
 //! Sorted vectors.
 //!
+//! [Repository](https://gitlab.com/spearman/sorted-vec)
+//!
 //! - `SortedVec` -- sorted from least to greatest
 //! - `ReverseSortedVec` -- sorted from greatest to least
 //!
