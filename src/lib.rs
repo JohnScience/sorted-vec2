@@ -90,6 +90,15 @@ impl <T : Ord> SortedVec <T> {
   {
     self.vec.drain (range)
   }
+  /// Apply a closure mutating the sorted vector and use `sort_unstable()`
+  /// to re-sort the mutated vector
+  pub fn mutate_vec <F, O> (&mut self, f : F) -> O where
+    F : FnOnce (&mut Vec <T>) -> O
+  {
+    let res = f (&mut self.vec);
+    self.vec.sort_unstable();
+    res
+  }
 }
 impl <T : Ord> Default for SortedVec <T> {
   fn default() -> Self {
@@ -180,6 +189,15 @@ impl <T : Ord> ReverseSortedVec <T> {
   {
     self.vec.drain (range)
   }
+  /// Apply a closure mutating the reverse-sorted vector and use
+  /// `sort_unstable_by()` to re-sort the mutated vector
+  pub fn mutate_vec <F, O> (&mut self, f : F) -> O where
+    F : FnOnce (&mut Vec <T>) -> O
+  {
+    let res = f (&mut self.vec);
+    self.vec.sort_unstable_by (|x,y| x.cmp (y).reverse());
+    res
+  }
 }
 impl <T : Ord> Default for ReverseSortedVec <T> {
   fn default() -> Self {
@@ -220,8 +238,14 @@ mod tests {
       vec![-11, -10, 2, 5, 10, 17, 99]);
     let mut v = SortedVec::new();
     v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
+    assert_eq!(*v, vec![-11, -10, 2, 5, 10, 17, 99]);
+    let _ = v.mutate_vec (|v|{
+      v[0] = 11;
+      v[3] = 1;
+    });
     assert_eq!(
-      v.drain(..).collect::<Vec <i32>>(), vec![-11, -10, 2, 5, 10, 17, 99]);
+      v.drain(..).collect::<Vec <i32>>(),
+      vec![-10, 1, 2, 10, 11, 17, 99]);
   }
 
   #[test]
@@ -241,7 +265,13 @@ mod tests {
       vec![99, 17, 10, 5, 2, -10, -11]);
     let mut v = ReverseSortedVec::new();
     v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
+    assert_eq!(*v, vec![99, 17, 10, 5, 2, -10, -11]);
+    let _ = v.mutate_vec (|v|{
+      v[6] = 11;
+      v[3] = 1;
+    });
     assert_eq!(
-      v.drain(..).collect::<Vec <i32>>(), vec![99, 17, 10, 5, 2, -10, -11]);
+      v.drain(..).collect::<Vec <i32>>(),
+      vec![99, 17, 11, 10, 2, 1, -10]);
   }
 }
