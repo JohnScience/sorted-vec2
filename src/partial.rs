@@ -93,6 +93,12 @@ impl <T : PartialOrd> SortedVec <T> {
   {
     self.vec.drain (range)
   }
+  /// NOTE: to_vec() is a slice method that is accessible through deref,
+  /// use this instead to avoid cloning
+  #[inline]
+  pub fn into_vec (self) -> Vec <T> {
+    self.vec
+  }
 }
 impl <T : PartialOrd> Default for SortedVec <T> {
   fn default() -> Self {
