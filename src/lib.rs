@@ -90,8 +90,8 @@ impl <T : Ord> SortedVec <T> {
   {
     self.vec.drain (range)
   }
-  /// NOTE: to_vec() is a slice method that is accessible through deref,
-  /// use this instead to avoid cloning
+  /// NOTE: to_vec() is a slice method that is accessible through deref, use
+  /// this instead to avoid cloning
   #[inline]
   pub fn into_vec (self) -> Vec <T> {
     self.vec
@@ -194,6 +194,12 @@ impl <T : Ord> ReverseSortedVec <T> {
     R : std::ops::RangeBounds <usize>
   {
     self.vec.drain (range)
+  }
+  /// NOTE: to_vec() is a slice method that is accessible through deref, use
+  /// this instead to avoid cloning
+  #[inline]
+  pub fn into_vec (self) -> Vec <T> {
+    self.vec
   }
   /// Apply a closure mutating the reverse-sorted vector and use
   /// `sort_unstable_by()` to re-sort the mutated vector

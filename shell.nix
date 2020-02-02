@@ -1,4 +1,4 @@
 with import <nixpkgs> {};
 pkgs.mkShell {
-  buildInputs = [ clang ];
+  buildInputs = [ rustup ];
 }
