@@ -5,13 +5,13 @@
 use {std};
 
 /// Forward sorted vector
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct SortedVec <T : PartialOrd> {
   vec : Vec <T>
 }
 
 /// Reverse sorted vector
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct ReverseSortedVec <T : PartialOrd> {
   vec : Vec <T>
 }

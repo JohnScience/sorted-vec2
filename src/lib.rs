@@ -16,14 +16,14 @@ pub mod partial;
 
 /// Forward sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedVec <T : Ord> {
   vec : Vec <T>
 }
 
 /// Reverse sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedVec <T : Ord> {
   vec : Vec <T>
 }
