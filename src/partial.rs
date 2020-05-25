@@ -2,7 +2,9 @@
 //!
 //! It is a runtime panic if an incomparable element is compared.
 
-use {std};
+use std;
+use std::hash::{Hash, Hasher};
+
 
 /// Forward sorted vector
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
@@ -127,6 +129,13 @@ impl <T : PartialOrd> Extend <T> for SortedVec <T> {
     }
   }
 }
+impl <T : PartialOrd + Hash> Hash for SortedVec <T> {
+  fn hash <H : Hasher> (&self, state : &mut H) {
+    let v : &Vec <T> = self.as_ref();
+    v.hash (state);
+  }
+}
+
 
 impl <T : PartialOrd> ReverseSortedVec <T> {
   #[inline]
@@ -229,6 +238,12 @@ impl <T : PartialOrd> Extend <T> for ReverseSortedVec <T> {
     for t in iter {
       let _ = self.insert (t);
     }
+  }
+}
+impl <T : PartialOrd + Hash> Hash for ReverseSortedVec <T> {
+  fn hash <H : Hasher> (&self, state : &mut H) {
+    let v : &Vec <T> = self.as_ref();
+    v.hash (state);
   }
 }
 

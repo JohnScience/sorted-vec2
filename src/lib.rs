@@ -12,6 +12,8 @@
 #[cfg(feature = "serde")]
 #[macro_use] extern crate serde;
 
+use std::hash::{Hash, Hasher};
+
 pub mod partial;
 
 /// Forward sorted vector
@@ -124,6 +126,12 @@ impl <T : Ord> Extend <T> for SortedVec <T> {
     }
   }
 }
+impl <T : Ord + Hash> Hash for SortedVec <T> {
+  fn hash <H : Hasher> (&self, state : &mut H) {
+    let v : &Vec <T> = self.as_ref();
+    v.hash (state);
+  }
+}
 
 impl <T : Ord> ReverseSortedVec <T> {
   #[inline]
@@ -227,6 +235,12 @@ impl <T : Ord> Extend <T> for ReverseSortedVec <T> {
     for t in iter {
       let _ = self.insert (t);
     }
+  }
+}
+impl <T : Ord + Hash> Hash for ReverseSortedVec <T> {
+  fn hash <H : Hasher> (&self, state : &mut H) {
+    let v : &Vec <T> = self.as_ref();
+    v.hash (state);
   }
 }
 
