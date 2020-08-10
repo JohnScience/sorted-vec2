@@ -47,20 +47,20 @@ impl <T : Ord> SortedVec <T> {
   }
   /// Insert an element into sorted position, returning the order index at which
   /// it was placed.
-  ///
-  /// If the element was already present, the order index is returned as an
-  /// `Err`, otherwise it is returned with `Ok`.
-  pub fn insert (&mut self, element : T) -> Result <usize, usize> {
-    match &self.vec[..].binary_search (&element) {
-      Ok  (insert_at) => {
-        self.vec.insert (*insert_at, element);
-        Err (*insert_at)
-      }
-      Err (insert_at) => {
-        self.vec.insert (*insert_at, element);
-        Ok  (*insert_at)
-      }
-    }
+  pub fn insert (&mut self, element : T) -> usize {
+    let insert_at = match self.binary_search (&element) {
+      Ok (insert_at) | Err (insert_at) => insert_at
+    };
+    self.vec.insert (insert_at, element);
+    insert_at
+  }
+  /// Find the element and return the index with `Ok`, otherwise insert the
+  /// element and return the new element index with `Err`.
+  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
+    self.binary_search (&element).map_err (|insert_at| {
+      self.vec.insert (insert_at, element);
+      insert_at
+    })
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
@@ -150,22 +150,20 @@ impl <T : Ord> ReverseSortedVec <T> {
   }
   /// Insert an element into (reverse) sorted position, returning the order
   /// index at which it was placed.
-  ///
-  /// If the element was already present, the order index is returned as an
-  /// `Err`, otherwise it is returned with `Ok`.
-  pub fn insert (&mut self, element : T) -> Result <usize, usize> {
-    match &self.vec[..].binary_search_by (
-      |other_element| other_element.cmp (&element).reverse()
-    ) {
-      Ok  (insert_at) => {
-        self.vec.insert (*insert_at, element);
-        Err (*insert_at)
-      }
-      Err (insert_at) => {
-        self.vec.insert (*insert_at, element);
-        Ok  (*insert_at)
-      }
-    }
+  pub fn insert (&mut self, element : T) -> usize {
+    let insert_at = match self.binary_search (&element) {
+      Ok (insert_at) | Err (insert_at) => insert_at
+    };
+    self.vec.insert (insert_at, element);
+    insert_at
+  }
+  /// Find the element and return the index with `Ok`, otherwise insert the
+  /// element and return the new element index with `Err`.
+  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
+    self.binary_search (&element).map_err (|insert_at| {
+      self.vec.insert (insert_at, element);
+      insert_at
+    })
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
@@ -251,10 +249,11 @@ mod tests {
   #[test]
   fn test_sorted_vec() {
     let mut v = SortedVec::new();
-    assert_eq!(v.insert (5), Ok (0));
-    assert_eq!(v.insert (3), Ok (0));
-    assert_eq!(v.insert (4), Ok (1));
-    assert_eq!(v.insert (4), Err (1));
+    assert_eq!(v.insert (5), 0);
+    assert_eq!(v.insert (3), 0);
+    assert_eq!(v.insert (4), 1);
+    assert_eq!(v.insert (4), 1);
+    assert_eq!(v.find_or_insert (4), Ok (2));
     assert_eq!(v.len(), 4);
     v.dedup();
     assert_eq!(v.len(), 3);
@@ -277,11 +276,12 @@ mod tests {
   #[test]
   fn test_reverse_sorted_vec() {
     let mut v = ReverseSortedVec::new();
-    assert_eq!(v.insert (5), Ok (0));
-    assert_eq!(v.insert (3), Ok (1));
-    assert_eq!(v.insert (4), Ok (1));
-    assert_eq!(v.insert (6), Ok (0));
-    assert_eq!(v.insert (4), Err (2));
+    assert_eq!(v.insert (5), 0);
+    assert_eq!(v.insert (3), 1);
+    assert_eq!(v.insert (4), 1);
+    assert_eq!(v.find_or_insert (6), Err (0));
+    assert_eq!(v.insert (4), 2);
+    assert_eq!(v.find_or_insert (4), Ok (3));
     assert_eq!(v.len(), 5);
     v.dedup();
     assert_eq!(v.len(), 4);
