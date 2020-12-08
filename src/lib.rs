@@ -87,6 +87,13 @@ impl <T : Ord> SortedVec <T> {
     self.vec.dedup();
   }
   #[inline]
+  pub fn dedup_by_key <F, K> (&mut self, key : F) where
+    F : FnMut (&mut T) -> K,
+    K : PartialEq <K>
+  {
+    self.vec.dedup_by_key (key);
+  }
+  #[inline]
   pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
     R : std::ops::RangeBounds <usize>
   {
@@ -194,6 +201,13 @@ impl <T : Ord> ReverseSortedVec <T> {
   #[inline]
   pub fn dedup (&mut self) {
     self.vec.dedup();
+  }
+  #[inline]
+  pub fn dedup_by_key <F, K> (&mut self, key : F) where
+    F : FnMut (&mut T) -> K,
+    K : PartialEq <K>
+  {
+    self.vec.dedup_by_key (key);
   }
   #[inline]
   pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
