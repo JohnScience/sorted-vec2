@@ -2,8 +2,11 @@
 //!
 //! [Repository](https://gitlab.com/spearman/sorted-vec)
 //!
-//! - `SortedVec` -- sorted from least to greatest
-//! - `ReverseSortedVec` -- sorted from greatest to least
+//! - `SortedVec` -- sorted from least to greatest, may contain duplicates
+//! - `SortedSet` -- sorted from least to greatest, unique elements
+//! - `ReverseSortedVec` -- sorted from greatest to least, may contain
+//!   duplicates
+//! - `ReverseSortedSet` -- sorted from greatest to least, unique elements
 //!
 //! The `partial` module provides sorted vectors of types that only implement
 //! `PartialOrd` where comparison of incomparable elements results in runtime
@@ -23,12 +26,30 @@ pub struct SortedVec <T : Ord> {
   vec : Vec <T>
 }
 
+/// Forward sorted set
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct SortedSet <T : Ord> {
+  set : SortedVec <T>
+}
+
 /// Reverse sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedVec <T : Ord> {
   vec : Vec <T>
 }
+
+/// Reverse sorted set
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ReverseSortedSet <T : Ord> {
+  set : ReverseSortedVec <T>
+}
+
+//
+//  impl SortedVec
+//
 
 impl <T : Ord> SortedVec <T> {
   #[inline]
@@ -99,6 +120,10 @@ impl <T : Ord> SortedVec <T> {
   {
     self.vec.drain (range)
   }
+  #[inline]
+  pub fn retain <F> (&mut self, f : F) where F : FnMut (&T) -> bool {
+    self.vec.retain (f)
+  }
   /// NOTE: to_vec() is a slice method that is accessible through deref, use
   /// this instead to avoid cloning
   #[inline]
@@ -139,6 +164,108 @@ impl <T : Ord + Hash> Hash for SortedVec <T> {
     v.hash (state);
   }
 }
+
+//
+//  impl SortedSet
+//
+
+impl <T : Ord> SortedSet <T> {
+  #[inline]
+  pub fn new() -> Self {
+    SortedSet { set: SortedVec::new() }
+  }
+  #[inline]
+  pub fn with_capacity (capacity : usize) -> Self {
+    SortedSet { set: SortedVec::with_capacity (capacity) }
+  }
+  /// Uses `sort_unstable()` to sort in place and `dedup()` to remove
+  /// duplicates.
+  #[inline]
+  pub fn from_unsorted (vec : Vec <T>) -> Self {
+    let mut set = SortedVec::from_unsorted (vec);
+    set.dedup();
+    SortedSet { set }
+  }
+  /// Insert an element into sorted position, returning the order index at which
+  /// it was placed.
+  #[inline]
+  pub fn insert (&mut self, element : T) -> usize {
+    let _ = self.remove_item (&element);
+    self.set.insert (element)
+  }
+  /// Find the element and return the index with `Ok`, otherwise insert the
+  /// element and return the new element index with `Err`.
+  #[inline]
+  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
+    self.set.find_or_insert (element)
+  }
+  #[inline]
+  pub fn remove_item (&mut self, item : &T) -> Option <T> {
+    self.set.remove_item (item)
+  }
+  /// Panics if index is out of bounds
+  #[inline]
+  pub fn remove_index (&mut self, index : usize) -> T {
+    self.set.remove_index (index)
+  }
+  #[inline]
+  pub fn pop (&mut self) -> Option <T> {
+    self.set.pop()
+  }
+  #[inline]
+  pub fn clear (&mut self) {
+    self.set.clear()
+  }
+  #[inline]
+  pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
+    R : std::ops::RangeBounds <usize>
+  {
+    self.set.drain (range)
+  }
+  #[inline]
+  pub fn retain <F> (&mut self, f : F) where F : FnMut (&T) -> bool {
+    self.set.retain (f)
+  }
+  /// NOTE: to_vec() is a slice method that is accessible through deref, use
+  /// this instead to avoid cloning
+  #[inline]
+  pub fn into_vec (self) -> Vec <T> {
+    self.set.into_vec()
+  }
+  /// Apply a closure mutating the sorted vector and use `sort_unstable()`
+  /// to re-sort the mutated vector and `dedup()` to remove any duplicate
+  /// values
+  pub fn mutate_vec <F, O> (&mut self, f : F) -> O where
+    F : FnOnce (&mut Vec <T>) -> O
+  {
+    let res = self.set.mutate_vec (f);
+    self.set.dedup();
+    res
+  }
+}
+impl <T : Ord> std::ops::Deref for SortedSet <T> {
+  type Target = SortedVec <T>;
+  fn deref (&self) -> &SortedVec <T> {
+    &self.set
+  }
+}
+impl <T : Ord> Extend <T> for SortedSet <T> {
+  fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
+    for t in iter {
+      let _ = self.insert (t);
+    }
+  }
+}
+impl <T : Ord + Hash> Hash for SortedSet <T> {
+  fn hash <H : Hasher> (&self, state : &mut H) {
+    let v : &Vec <T> = self.as_ref();
+    v.hash (state);
+  }
+}
+
+//
+//  impl ReverseSortedVec
+//
 
 impl <T : Ord> ReverseSortedVec <T> {
   #[inline]
@@ -215,6 +342,10 @@ impl <T : Ord> ReverseSortedVec <T> {
   {
     self.vec.drain (range)
   }
+  #[inline]
+  pub fn retain <F> (&mut self, f : F) where F : FnMut (&T) -> bool {
+    self.vec.retain (f)
+  }
   /// NOTE: to_vec() is a slice method that is accessible through deref, use
   /// this instead to avoid cloning
   #[inline]
@@ -256,6 +387,104 @@ impl <T : Ord + Hash> Hash for ReverseSortedVec <T> {
   }
 }
 
+//
+//  impl ReverseSortedSet
+//
+
+impl <T : Ord> ReverseSortedSet <T> {
+  #[inline]
+  pub fn new() -> Self {
+    ReverseSortedSet { set: ReverseSortedVec::new() }
+  }
+  #[inline]
+  pub fn with_capacity (capacity : usize) -> Self {
+    ReverseSortedSet { set: ReverseSortedVec::with_capacity (capacity) }
+  }
+  /// Uses `sort_unstable()` to sort in place and `dedup()` to remove
+  /// duplicates.
+  #[inline]
+  pub fn from_unsorted (vec : Vec <T>) -> Self {
+    let mut set = ReverseSortedVec::from_unsorted (vec);
+    set.dedup();
+    ReverseSortedSet { set }
+  }
+  /// Insert an element into sorted position, returning the order index at which
+  /// it was placed.
+  #[inline]
+  pub fn insert (&mut self, element : T) -> usize {
+    let _ = self.remove_item (&element);
+    self.set.insert (element)
+  }
+  /// Find the element and return the index with `Ok`, otherwise insert the
+  /// element and return the new element index with `Err`.
+  #[inline]
+  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
+    self.set.find_or_insert (element)
+  }
+  #[inline]
+  pub fn remove_item (&mut self, item : &T) -> Option <T> {
+    self.set.remove_item (item)
+  }
+  /// Panics if index is out of bounds
+  #[inline]
+  pub fn remove_index (&mut self, index : usize) -> T {
+    self.set.remove_index (index)
+  }
+  #[inline]
+  pub fn pop (&mut self) -> Option <T> {
+    self.set.pop()
+  }
+  #[inline]
+  pub fn clear (&mut self) {
+    self.set.clear()
+  }
+  #[inline]
+  pub fn drain <R> (&mut self, range : R) -> std::vec::Drain <T> where
+    R : std::ops::RangeBounds <usize>
+  {
+    self.set.drain (range)
+  }
+  #[inline]
+  pub fn retain <F> (&mut self, f : F) where F : FnMut (&T) -> bool {
+    self.set.retain (f)
+  }
+  /// NOTE: to_vec() is a slice method that is accessible through deref, use
+  /// this instead to avoid cloning
+  #[inline]
+  pub fn into_vec (self) -> Vec <T> {
+    self.set.into_vec()
+  }
+  /// Apply a closure mutating the sorted vector and use `sort_unstable()`
+  /// to re-sort the mutated vector and `dedup()` to remove any duplicate
+  /// values
+  pub fn mutate_vec <F, O> (&mut self, f : F) -> O where
+    F : FnOnce (&mut Vec <T>) -> O
+  {
+    let res = self.set.mutate_vec (f);
+    self.set.dedup();
+    res
+  }
+}
+impl <T : Ord> std::ops::Deref for ReverseSortedSet <T> {
+  type Target = ReverseSortedVec <T>;
+  fn deref (&self) -> &ReverseSortedVec <T> {
+    &self.set
+  }
+}
+impl <T : Ord> Extend <T> for ReverseSortedSet <T> {
+  fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
+    for t in iter {
+      let _ = self.insert (t);
+    }
+  }
+}
+impl <T : Ord + Hash> Hash for ReverseSortedSet <T> {
+  fn hash <H : Hasher> (&self, state : &mut H) {
+    let v : &Vec <T> = self.as_ref();
+    v.hash (state);
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -288,6 +517,31 @@ mod tests {
   }
 
   #[test]
+  fn test_sorted_set() {
+    let mut s = SortedSet::new();
+    assert_eq!(s.insert (5), 0);
+    assert_eq!(s.insert (3), 0);
+    assert_eq!(s.insert (4), 1);
+    assert_eq!(s.insert (4), 1);
+    assert_eq!(s.find_or_insert (4), Ok (1));
+    assert_eq!(s.len(), 3);
+    assert_eq!(s.binary_search (&3), Ok (0));
+    assert_eq!(**SortedSet::from_unsorted (
+      vec![5, -10, 99, -10, -11, 10, 2, 17, 10]),
+      vec![-11, -10, 2, 5, 10, 17, 99]);
+    let mut s = SortedSet::new();
+    s.extend(vec![5, -11, -10, 99, -11, 2, 17, 2, 10].into_iter());
+    assert_eq!(**s, vec![-11, -10, 2, 5, 10, 17, 99]);
+    let _ = s.mutate_vec (|s|{
+      s[0] = 5;
+      s[3] = 1;
+    });
+    assert_eq!(
+      s.drain(..).collect::<Vec <i32>>(),
+      vec![-10, 1, 2, 5, 10, 17, 99]);
+  }
+
+  #[test]
   fn test_reverse_sorted_vec() {
     let mut v = ReverseSortedVec::new();
     assert_eq!(v.insert (5), 0);
@@ -313,5 +567,31 @@ mod tests {
     assert_eq!(
       v.drain(..).collect::<Vec <i32>>(),
       vec![99, 17, 11, 10, 2, 1, -10]);
+  }
+
+  #[test]
+  fn test_reverse_sorted_set() {
+    let mut s = ReverseSortedSet::new();
+    assert_eq!(s.insert (5), 0);
+    assert_eq!(s.insert (3), 1);
+    assert_eq!(s.insert (4), 1);
+    assert_eq!(s.find_or_insert (6), Err (0));
+    assert_eq!(s.insert (4), 2);
+    assert_eq!(s.find_or_insert (4), Ok (2));
+    assert_eq!(s.len(), 4);
+    assert_eq!(s.binary_search (&3), Ok (3));
+    assert_eq!(**ReverseSortedSet::from_unsorted (
+      vec![5, -10, 99, -11, 2, 99, 17, 10, -10]),
+      vec![99, 17, 10, 5, 2, -10, -11]);
+    let mut s = ReverseSortedSet::new();
+    s.extend(vec![5, -10, 2, 99, -11, -11, 2, 17, 10].into_iter());
+    assert_eq!(**s, vec![99, 17, 10, 5, 2, -10, -11]);
+    let _ = s.mutate_vec (|s|{
+      s[6] = 17;
+      s[3] = 1;
+    });
+    assert_eq!(
+      s.drain(..).collect::<Vec <i32>>(),
+      vec![99, 17, 10, 2, 1, -10]);
   }
 }
