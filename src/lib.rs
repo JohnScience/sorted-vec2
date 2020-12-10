@@ -243,6 +243,11 @@ impl <T : Ord> SortedSet <T> {
     res
   }
 }
+impl <T : Ord> Default for SortedSet <T> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
 impl <T : Ord> std::ops::Deref for SortedSet <T> {
   type Target = SortedVec <T>;
   fn deref (&self) -> &SortedVec <T> {
@@ -463,6 +468,11 @@ impl <T : Ord> ReverseSortedSet <T> {
     let res = self.set.mutate_vec (f);
     self.set.dedup();
     res
+  }
+}
+impl <T : Ord> Default for ReverseSortedSet <T> {
+  fn default() -> Self {
+    Self::new()
   }
 }
 impl <T : Ord> std::ops::Deref for ReverseSortedSet <T> {
