@@ -145,6 +145,11 @@ impl <T : Ord> Default for SortedVec <T> {
     Self::new()
   }
 }
+impl <T : Ord> From <Vec <T>> for SortedVec <T> {
+  fn from (unsorted : Vec <T>) -> Self {
+    Self::from_unsorted (unsorted)
+  }
+}
 impl <T : Ord> std::ops::Deref for SortedVec <T> {
   type Target = Vec <T>;
   fn deref (&self) -> &Vec <T> {
@@ -246,6 +251,11 @@ impl <T : Ord> SortedSet <T> {
 impl <T : Ord> Default for SortedSet <T> {
   fn default() -> Self {
     Self::new()
+  }
+}
+impl <T : Ord> From <Vec <T>> for SortedSet <T> {
+  fn from (unsorted : Vec <T>) -> Self {
+    Self::from_unsorted (unsorted)
   }
 }
 impl <T : Ord> std::ops::Deref for SortedSet <T> {
@@ -372,6 +382,11 @@ impl <T : Ord> Default for ReverseSortedVec <T> {
     Self::new()
   }
 }
+impl <T : Ord> From <Vec <T>> for ReverseSortedVec <T> {
+  fn from (unsorted : Vec <T>) -> Self {
+    Self::from_unsorted (unsorted)
+  }
+}
 impl <T : Ord> std::ops::Deref for ReverseSortedVec <T> {
   type Target = Vec <T>;
   fn deref (&self) -> &Vec <T> {
@@ -475,6 +490,11 @@ impl <T : Ord> Default for ReverseSortedSet <T> {
     Self::new()
   }
 }
+impl <T : Ord> From <Vec <T>> for ReverseSortedSet <T> {
+  fn from (unsorted : Vec <T>) -> Self {
+    Self::from_unsorted (unsorted)
+  }
+}
 impl <T : Ord> std::ops::Deref for ReverseSortedSet <T> {
   type Target = ReverseSortedVec <T>;
   fn deref (&self) -> &ReverseSortedVec <T> {
@@ -514,6 +534,9 @@ mod tests {
     assert_eq!(*SortedVec::from_unsorted (
       vec![5, -10, 99, -11, 2, 17, 10]),
       vec![-11, -10, 2, 5, 10, 17, 99]);
+    assert_eq!(SortedVec::from_unsorted (
+      vec![5, -10, 99, -11, 2, 17, 10]),
+      vec![5, -10, 99, -11, 2, 17, 10].into());
     let mut v = SortedVec::new();
     v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
     assert_eq!(*v, vec![-11, -10, 2, 5, 10, 17, 99]);
@@ -539,6 +562,9 @@ mod tests {
     assert_eq!(**SortedSet::from_unsorted (
       vec![5, -10, 99, -10, -11, 10, 2, 17, 10]),
       vec![-11, -10, 2, 5, 10, 17, 99]);
+    assert_eq!(SortedSet::from_unsorted (
+      vec![5, -10, 99, -10, -11, 10, 2, 17, 10]),
+      vec![5, -10, 99, -10, -11, 10, 2, 17, 10].into());
     let mut s = SortedSet::new();
     s.extend(vec![5, -11, -10, 99, -11, 2, 17, 2, 10].into_iter());
     assert_eq!(**s, vec![-11, -10, 2, 5, 10, 17, 99]);
@@ -567,6 +593,9 @@ mod tests {
     assert_eq!(*ReverseSortedVec::from_unsorted (
       vec![5, -10, 99, -11, 2, 17, 10]),
       vec![99, 17, 10, 5, 2, -10, -11]);
+    assert_eq!(ReverseSortedVec::from_unsorted (
+      vec![5, -10, 99, -11, 2, 17, 10]),
+      vec![5, -10, 99, -11, 2, 17, 10].into());
     let mut v = ReverseSortedVec::new();
     v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
     assert_eq!(*v, vec![99, 17, 10, 5, 2, -10, -11]);
@@ -593,6 +622,9 @@ mod tests {
     assert_eq!(**ReverseSortedSet::from_unsorted (
       vec![5, -10, 99, -11, 2, 99, 17, 10, -10]),
       vec![99, 17, 10, 5, 2, -10, -11]);
+    assert_eq!(ReverseSortedSet::from_unsorted (
+      vec![5, -10, 99, -11, 2, 99, 17, 10, -10]),
+      vec![5, -10, 99, -11, 2, 99, 17, 10, -10].into());
     let mut s = ReverseSortedSet::new();
     s.extend(vec![5, -10, 2, 99, -11, -11, 2, 17, 10].into_iter());
     assert_eq!(**s, vec![99, 17, 10, 5, 2, -10, -11]);
