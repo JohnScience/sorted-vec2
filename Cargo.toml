@@ -1,6 +1,6 @@
 [package]
 name = "sorted-vec"
-version = "0.5.2"
+version = "0.6.0"
 authors = ["Shane Pearman <spearman@gitlab.com>"]
 license = "Apache-2.0"
 description = "Create and maintain sorted vectors and vector-backed sets"
@@ -9,3 +9,6 @@ readme = "README.md"
 
 [dependencies]
 serde = { version = "1.*", features = [ "derive" ], optional = true }
+
+[features]
+serde-transparent = ["serde"]

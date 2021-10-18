@@ -21,6 +21,7 @@ pub mod partial;
 
 /// Forward sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-transparent", serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedVec <T : Ord> {
   vec : Vec <T>
@@ -28,6 +29,7 @@ pub struct SortedVec <T : Ord> {
 
 /// Forward sorted set
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-transparent", serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedSet <T : Ord> {
   set : SortedVec <T>
@@ -35,6 +37,7 @@ pub struct SortedSet <T : Ord> {
 
 /// Reverse sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-transparent", serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedVec <T : Ord> {
   vec : Vec <T>
@@ -42,6 +45,7 @@ pub struct ReverseSortedVec <T : Ord> {
 
 /// Reverse sorted set
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde-transparent", serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedSet <T : Ord> {
   set : ReverseSortedVec <T>
