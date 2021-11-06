@@ -584,7 +584,7 @@ mod tests {
     assert_eq!(v.insert (4.0), 1);
     assert_eq!(v.find_or_insert (6.0), Err (0));
     assert_eq!(v.insert (4.0), 2);
-    assert_eq!(v.find_or_insert (4.0), Ok (3));
+    assert_eq!(v.find_or_insert (4.0), Ok (2));
     assert_eq!(v.len(), 5);
     v.dedup();
     assert_eq!(v.len(), 4);
