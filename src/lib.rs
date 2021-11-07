@@ -12,6 +12,8 @@
 //! `PartialOrd` where comparison of incomparable elements results in runtime
 //! panic.
 
+#![cfg_attr(feature = "serde", feature(is_sorted))]
+
 #[cfg(feature = "serde")]
 #[macro_use] extern crate serde;
 
@@ -24,7 +26,25 @@ pub mod partial;
 #[cfg_attr(feature = "serde-transparent", serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedVec <T : Ord> {
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_vec"))]
+  #[cfg_attr(feature = "serde",
+    serde(bound(deserialize = "T : serde::Deserialize <'de>")))]
   vec : Vec <T>
+}
+
+#[cfg(feature = "serde")]
+fn parse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
+  D : serde::Deserializer <'de>,
+  T : Ord + serde::Deserialize <'de>
+{
+  use serde::Deserialize;
+  use serde::de::Error;
+  let v = Vec::deserialize (deserializer)?;
+  if !v.is_sorted() {
+    Err (D::Error::custom ("input sequence is not sorted"))
+  } else {
+    Ok (v)
+  }
 }
 
 /// Forward sorted set
@@ -40,7 +60,25 @@ pub struct SortedSet <T : Ord> {
 #[cfg_attr(feature = "serde-transparent", serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedVec <T : Ord> {
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_reverse_vec"))]
+  #[cfg_attr(feature = "serde",
+    serde(bound(deserialize = "T : serde::Deserialize <'de>")))]
   vec : Vec <T>
+}
+
+#[cfg(feature = "serde")]
+fn parse_reverse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
+  D : serde::Deserializer <'de>,
+  T : Ord + serde::Deserialize <'de>
+{
+  use serde::Deserialize;
+  use serde::de::Error;
+  let v = Vec::<T>::deserialize (deserializer)?;
+  if !v.is_sorted_by (|x,y| Some (x.cmp (y).reverse())) {
+    Err (D::Error::custom ("input sequence is not reverse sorted"))
+  } else {
+    Ok (v)
+  }
 }
 
 /// Reverse sorted set
@@ -639,5 +677,57 @@ mod tests {
     assert_eq!(
       s.drain(..).collect::<Vec <i32>>(),
       vec![99, 17, 10, 2, 1, -10]);
+  }
+  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[test]
+  fn test_deserialize() {
+    let s = r#"{"vec":[-11,-10,2,5,10,17,99]}"#;
+    let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(feature = "serde-transparent")]
+  #[test]
+  fn test_deserialize() {
+    let s = "[-11,-10,2,5,10,17,99]";
+    let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[test]
+  #[should_panic]
+  fn test_deserialize_unsorted() {
+    let s = r#"{"vec":[99,-11,-10,2,5,10,17]}"#;
+    let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(feature = "serde-transparent")]
+  #[test]
+  #[should_panic]
+  fn test_deserialize_unsorted() {
+    let s = "[99,-11,-10,2,5,10,17]";
+    let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[test]
+  fn test_deserialize_reverse() {
+    let s = r#"{"vec":[99,17,10,5,2,-10,-11]}"#;
+    let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(feature = "serde-transparent")]
+  #[test]
+  fn test_deserialize_reverse() {
+    let s = "[99,17,10,5,2,-10,-11]";
+    let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[test]
+  #[should_panic]
+  fn test_deserialize_reverse_unsorted() {
+    let s = r#"{vec:[99,-11,-10,2,5,10,17]}"#;
+    let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
+  }
+  #[cfg(feature = "serde-transparent")]
+  #[test]
+  #[should_panic]
+  fn test_deserialize_reverse_unsorted() {
+    let s = "[99,-11,-10,2,5,10,17]";
+    let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
   }
 }
