@@ -23,7 +23,8 @@ pub mod partial;
 
 /// Forward sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde-transparent", serde(transparent))]
+#[cfg_attr(all(feature = "serde", not(feature = "serde-nontransparent")),
+  serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedVec <T : Ord> {
   #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_vec"))]
@@ -49,7 +50,8 @@ fn parse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
 
 /// Forward sorted set
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde-transparent", serde(transparent))]
+#[cfg_attr(all(feature = "serde", not(feature = "serde-nontransparent")),
+  serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedSet <T : Ord> {
   set : SortedVec <T>
@@ -57,7 +59,8 @@ pub struct SortedSet <T : Ord> {
 
 /// Reverse sorted vector
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde-transparent", serde(transparent))]
+#[cfg_attr(all(feature = "serde", not(feature = "serde-nontransparent")),
+  serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedVec <T : Ord> {
   #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_reverse_vec"))]
@@ -83,7 +86,8 @@ fn parse_reverse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error
 
 /// Reverse sorted set
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde-transparent", serde(transparent))]
+#[cfg_attr(all(feature = "serde", not(feature = "serde-nontransparent")),
+  serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ReverseSortedSet <T : Ord> {
   set : ReverseSortedVec <T>
@@ -678,52 +682,52 @@ mod tests {
       s.drain(..).collect::<Vec <i32>>(),
       vec![99, 17, 10, 2, 1, -10]);
   }
-  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[cfg(feature = "serde-nontransparent")]
   #[test]
   fn test_deserialize() {
     let s = r#"{"vec":[-11,-10,2,5,10,17,99]}"#;
     let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
   }
-  #[cfg(feature = "serde-transparent")]
+  #[cfg(all(feature = "serde", not(feature = "serde-nontransparent")))]
   #[test]
   fn test_deserialize() {
     let s = "[-11,-10,2,5,10,17,99]";
     let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
   }
-  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[cfg(feature = "serde-nontransparent")]
   #[test]
   #[should_panic]
   fn test_deserialize_unsorted() {
     let s = r#"{"vec":[99,-11,-10,2,5,10,17]}"#;
     let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
   }
-  #[cfg(feature = "serde-transparent")]
+  #[cfg(all(feature = "serde", not(feature = "serde-nontransparent")))]
   #[test]
   #[should_panic]
   fn test_deserialize_unsorted() {
     let s = "[99,-11,-10,2,5,10,17]";
     let _ = serde_json::from_str::<SortedVec <i32>> (s).unwrap();
   }
-  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[cfg(feature = "serde-nontransparent")]
   #[test]
   fn test_deserialize_reverse() {
     let s = r#"{"vec":[99,17,10,5,2,-10,-11]}"#;
     let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
   }
-  #[cfg(feature = "serde-transparent")]
+  #[cfg(all(feature = "serde", not(feature = "serde-nontransparent")))]
   #[test]
   fn test_deserialize_reverse() {
     let s = "[99,17,10,5,2,-10,-11]";
     let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
   }
-  #[cfg(all(feature = "serde", not(feature = "serde-transparent")))]
+  #[cfg(feature = "serde-nontransparent")]
   #[test]
   #[should_panic]
   fn test_deserialize_reverse_unsorted() {
     let s = r#"{vec:[99,-11,-10,2,5,10,17]}"#;
     let _ = serde_json::from_str::<ReverseSortedVec <i32>> (s).unwrap();
   }
-  #[cfg(feature = "serde-transparent")]
+  #[cfg(all(feature = "serde", not(feature = "serde-nontransparent")))]
   #[test]
   #[should_panic]
   fn test_deserialize_reverse_unsorted() {
