@@ -93,6 +93,26 @@ pub struct ReverseSortedSet <T : Ord> {
   set : ReverseSortedVec <T>
 }
 
+/// Value returned when find_or_insert is used.
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
+pub enum FindOrInsert {
+  /// Contains a found index
+  Found(usize),
+
+  /// Contains an inserted index
+  Inserted(usize),
+}
+
+/// Converts from the binary_search result type into the FindOrInsert type
+impl From<Result<usize, usize>> for FindOrInsert {
+  fn from(result: Result<usize, usize>) -> Self {
+    match result {
+      Result::Ok(value) => FindOrInsert::Found(value),
+      Result::Err(value) => FindOrInsert::Inserted(value),
+    }
+  }
+}
+
 //
 //  impl SortedVec
 //
@@ -247,8 +267,8 @@ impl <T : Ord> SortedSet <T> {
   /// Find the element and return the index with `Ok`, otherwise insert the
   /// element and return the new element index with `Err`.
   #[inline]
-  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
-    self.set.find_or_insert (element)
+  pub fn find_or_insert (&mut self, element : T) -> FindOrInsert {
+    self.set.find_or_insert (element).into()
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
@@ -354,11 +374,11 @@ impl <T : Ord> ReverseSortedVec <T> {
   }
   /// Find the element and return the index with `Ok`, otherwise insert the
   /// element and return the new element index with `Err`.
-  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
+  pub fn find_or_insert (&mut self, element : T) -> FindOrInsert {
     self.binary_search (&element).map_err (|insert_at| {
       self.vec.insert (insert_at, element);
       insert_at
-    })
+    }).into()
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
@@ -484,8 +504,8 @@ impl <T : Ord> ReverseSortedSet <T> {
   /// Find the element and return the index with `Ok`, otherwise insert the
   /// element and return the new element index with `Err`.
   #[inline]
-  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
-    self.set.find_or_insert (element)
+  pub fn find_or_insert (&mut self, element : T) -> FindOrInsert {
+    self.set.find_or_insert (element).into()
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
@@ -602,7 +622,7 @@ mod tests {
     assert_eq!(s.insert (3), 0);
     assert_eq!(s.insert (4), 1);
     assert_eq!(s.insert (4), 1);
-    assert_eq!(s.find_or_insert (4), Ok (1));
+    assert_eq!(s.find_or_insert (4), FindOrInsert::Found (1));
     assert_eq!(s.len(), 3);
     assert_eq!(s.binary_search (&3), Ok (0));
     assert_eq!(**SortedSet::from_unsorted (
@@ -629,9 +649,9 @@ mod tests {
     assert_eq!(v.insert (5), 0);
     assert_eq!(v.insert (3), 1);
     assert_eq!(v.insert (4), 1);
-    assert_eq!(v.find_or_insert (6), Err (0));
+    assert_eq!(v.find_or_insert (6), FindOrInsert::Inserted (0));
     assert_eq!(v.insert (4), 2);
-    assert_eq!(v.find_or_insert (4), Ok (2));
+    assert_eq!(v.find_or_insert (4), FindOrInsert::Found (2));
     assert_eq!(v.len(), 5);
     v.dedup();
     assert_eq!(v.len(), 4);
@@ -660,9 +680,9 @@ mod tests {
     assert_eq!(s.insert (5), 0);
     assert_eq!(s.insert (3), 1);
     assert_eq!(s.insert (4), 1);
-    assert_eq!(s.find_or_insert (6), Err (0));
+    assert_eq!(s.find_or_insert (6), FindOrInsert::Inserted (0));
     assert_eq!(s.insert (4), 2);
-    assert_eq!(s.find_or_insert (4), Ok (2));
+    assert_eq!(s.find_or_insert (4), FindOrInsert::Found (2));
     assert_eq!(s.len(), 4);
     assert_eq!(s.binary_search (&3), Ok (3));
     assert_eq!(**ReverseSortedSet::from_unsorted (
