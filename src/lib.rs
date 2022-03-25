@@ -270,8 +270,20 @@ impl <T : Ord> SortedSet <T> {
   /// it was placed.
   #[inline]
   pub fn insert (&mut self, element : T) -> usize {
-    let _ = self.remove_item (&element);
-    self.set.insert (element)
+    match self.set.vec.binary_search(&element) {
+      Ok (existing_index) => {
+        unsafe {
+          // If binary_search worked correctly, then this must be the index of a
+          // valid element to get from the vector.
+          *self.set.vec.get_unchecked_mut(existing_index) = element;
+        }
+        existing_index
+      },
+      Err (insert_index) => {
+        self.set.vec.insert(insert_index, element);
+        insert_index
+      }
+    }
   }
   /// Find the element and return the index with `Ok`, otherwise insert the
   /// element and return the new element index with `Err`.
