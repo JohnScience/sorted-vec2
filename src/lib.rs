@@ -113,6 +113,15 @@ impl From<Result<usize, usize>> for FindOrInsert {
   }
 }
 
+impl FindOrInsert {
+  pub fn index(&self) -> usize {
+    match self {
+      FindOrInsert::Found(value) => *value,
+      FindOrInsert::Inserted(value) => *value,
+    }
+  }
+}
+
 //
 //  impl SortedVec
 //
