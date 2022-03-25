@@ -116,8 +116,7 @@ impl From<Result<usize, usize>> for FindOrInsert {
 impl FindOrInsert {
   pub fn index(&self) -> usize {
     match self {
-      FindOrInsert::Found(value) => *value,
-      FindOrInsert::Inserted(value) => *value,
+      FindOrInsert::Found(value) | FindOrInsert::Inserted(value) => *value
     }
   }
 }
@@ -152,11 +151,11 @@ impl <T : Ord> SortedVec <T> {
   }
   /// Find the element and return the index with `Ok`, otherwise insert the
   /// element and return the new element index with `Err`.
-  pub fn find_or_insert (&mut self, element : T) -> Result <usize, usize> {
+  pub fn find_or_insert (&mut self, element : T) -> FindOrInsert {
     self.binary_search (&element).map_err (|insert_at| {
       self.vec.insert (insert_at, element);
       insert_at
-    })
+    }).into()
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
@@ -613,7 +612,8 @@ mod tests {
     assert_eq!(v.insert (3), 0);
     assert_eq!(v.insert (4), 1);
     assert_eq!(v.insert (4), 1);
-    assert_eq!(v.find_or_insert (4), Ok (2));
+    assert_eq!(v.find_or_insert (4), FindOrInsert::Found (2));
+    assert_eq!(v.find_or_insert (4).index(), 2);
     assert_eq!(v.len(), 4);
     v.dedup();
     assert_eq!(v.len(), 3);
@@ -644,6 +644,7 @@ mod tests {
     assert_eq!(s.insert (4), 1);
     assert_eq!(s.insert (4), 1);
     assert_eq!(s.find_or_insert (4), FindOrInsert::Found (1));
+    assert_eq!(s.find_or_insert (4).index(), 1);
     assert_eq!(s.len(), 3);
     assert_eq!(s.binary_search (&3), Ok (0));
     assert_eq!(**SortedSet::from_unsorted (
