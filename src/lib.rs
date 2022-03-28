@@ -114,9 +114,46 @@ impl From<Result<usize, usize>> for FindOrInsert {
 }
 
 impl FindOrInsert {
+
+  /// Get the index of the element that was either found or inserted.
   pub fn index(&self) -> usize {
     match self {
       FindOrInsert::Found(value) | FindOrInsert::Inserted(value) => *value
+    }
+  }
+
+  /// If an equivalent element was found in the container, get the value of
+  /// its index. Otherwise get None.
+  pub fn found(&self) -> Option<usize> {
+    match self {
+      FindOrInsert::Found(value) => Some(*value),
+      FindOrInsert::Inserted(_) => None
+    }
+  }
+
+  /// If the provided element was inserted into the container, get the value
+  /// of its index. Otherwise get None.
+  pub fn inserted(&self) -> Option<usize> {
+    match self {
+      FindOrInsert::Found(_) => None,
+      FindOrInsert::Inserted(value) => Some(*value)
+    }
+  }
+
+  /// Returns true if the element was found.
+  pub fn is_found(&self) -> bool {
+    return matches!(self, FindOrInsert::Found(_));
+  }
+
+  /// Returns true if the element was inserted.
+  pub fn is_inserted(&self) -> bool {
+    return matches!(self, FindOrInsert::Inserted(_));
+  }
+
+  pub fn map<T, F: FnOnce(usize) -> T>(&self, if_found: F, if_inserted:F) -> T {
+    match self {
+      FindOrInsert::Found(value) => if_found(*value),
+      FindOrInsert::Inserted(value) => if_inserted(*value)
     }
   }
 }
