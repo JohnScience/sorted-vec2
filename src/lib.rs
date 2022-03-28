@@ -380,9 +380,25 @@ impl <T : Ord + Hash> Hash for SortedSet <T> {
   }
 }
 
-//
-//  Reverse Containers
-//
+/// Reverse-sorted Containers.
+///
+/// Use these containers to have the vector sorted in the reverse order of its
+/// usual comparison.
+///
+/// Note that objects going into the reverse container needs to be wrapped in
+/// std::cmp::Reverse.
+///
+/// # Examples
+///
+/// ```
+/// use std::cmp::Reverse;
+/// use sorted_vec::ReverseSortedVec;
+///
+/// let mut vec = ReverseSortedVec::<u64>::new();
+/// vec.insert(Reverse(10));
+/// vec.insert(Reverse(15));
+/// assert_eq!(vec.last().unwrap().0, 10);
+/// ```
 pub type ReverseSortedVec<T> = SortedVec<std::cmp::Reverse<T>>;
 pub type ReverseSortedSet<T> = SortedSet<std::cmp::Reverse<T>>;
 
