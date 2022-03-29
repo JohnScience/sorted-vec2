@@ -277,7 +277,7 @@ impl <T : Ord> SortedVec <T> {
   /// Unsafe access to the underlying vector. The caller must ensure that any
   /// changes to the values in the vector do not impact the ordering of the
   /// elements inside, or else this container will misbehave.
-  pub unsafe fn get_vec_mut_unsafe(&mut self) -> &mut Vec<T> {
+  pub unsafe fn get_unchecked_mut_vec(&mut self) -> &mut Vec<T> {
     return &mut self.vec;
   }
 }
@@ -435,8 +435,8 @@ impl <T : Ord> SortedSet <T> {
   /// Unsafe access to the underlying vector. The caller must ensure that any
   /// changes to the values in the vector do not impact the ordering of the
   /// elements inside, or else this container will misbehave.
-  pub unsafe fn get_vec_mut_unsafe(&mut self) -> &mut Vec<T> {
-    return self.set.get_vec_mut_unsafe();
+  pub unsafe fn get_unchecked_mut_vec(&mut self) -> &mut Vec<T> {
+    return self.set.get_unchecked_mut_vec();
   }
 }
 impl <T : Ord> Default for SortedSet <T> {
