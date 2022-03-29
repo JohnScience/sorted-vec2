@@ -173,6 +173,51 @@ impl <T : Ord> SortedVec <T> {
       insert_at
     }).into()
   }
+  /// Same as insert, except performance is O(1) when the element belongs at the
+  /// back of the container. This avoids an O(log(N)) search for inserting
+  /// elements at the back.
+  pub fn push(&mut self, element: T) -> usize {
+    if let Some(last) = self.vec.last() {
+      let cmp = element.cmp(last);
+      if cmp == std::cmp::Ordering::Greater || cmp == std::cmp::Ordering::Equal {
+        // The new element is greater than or equal to the current last element,
+        // so we can simply push it onto the vec.
+        self.vec.push(element);
+        return self.vec.len() - 1;
+      } else {
+        // The new element is less than the last element in the container, so we
+        // cannot simply push. We will fall back on the normal insert behavior.
+        return self.insert(element);
+      }
+    } else {
+      // If there is no last element then the container must be empty, so we
+      // can simply push the element and return its index, which must be 0.
+      self.vec.push(element);
+      return 0;
+    }
+  }
+  /// Same as find_or_insert, except performance is O(1) when the element
+  /// belongs at the back of the container.
+  pub fn find_or_push(&mut self, element: T) -> FindOrInsert {
+    if let Some(last) = self.vec.last() {
+      let cmp = element.cmp(last);
+      if cmp == std::cmp::Ordering::Equal {
+        return FindOrInsert::Found(self.vec.len() - 1);
+      } else if cmp == std::cmp::Ordering::Greater {
+        self.vec.push(element);
+        return FindOrInsert::Inserted(self.vec.len() - 1);
+      } else {
+        // The new element is less than the last element in the container, so we
+        // need to fall back on the regular find_or_insert
+        return self.find_or_insert(element);
+      }
+    } else {
+      // If there is no last element then the container must be empty, so we can
+      // simply push the element and return that it was inserted.
+      self.vec.push(element);
+      return FindOrInsert::Inserted(0);
+    }
+  }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
     match self.vec.binary_search (item) {
@@ -304,7 +349,39 @@ impl <T : Ord> SortedSet <T> {
   /// element and return the new element index with `Err`.
   #[inline]
   pub fn find_or_insert (&mut self, element : T) -> FindOrInsert {
-    self.set.find_or_insert (element).into()
+    self.set.find_or_insert (element)
+  }
+  /// Same as insert, except performance is O(1) when the element belongs at the
+  /// back of the container. This avoids an O(log(N)) search for inserting
+  /// elements at the back.
+  pub fn push(&mut self, element: T) -> usize {
+    if let Some(last) = self.vec.last() {
+      let cmp = element.cmp(last);
+      if cmp == std::cmp::Ordering::Greater {
+        // The new element is greater than the current last eleement, so we can
+        // simply push it onto the vec.
+        self.set.vec.push(element);
+        return self.vec.len() - 1;
+      } else if cmp == std::cmp::Ordering::Equal {
+        // The new element is equal to the last element, so we can simply return
+        // the last index in the vec.
+        return self.vec.len() - 1;
+      } else {
+        // The new element is less than the last element, so we need to fall
+        // back on the regular insert function.
+        return self.insert(element);
+      }
+    } else {
+      // If there is no last element then the container must be empty, so we can
+      // simply push the element and return its index, which must be 0.
+      self.set.vec.push(element);
+      return 0;
+    }
+  }
+  /// Same as find_or_insert, except performance is O(1) when the element
+  /// belongs at the back of the container.
+  pub fn find_or_push(&mut self, element: T) -> FindOrInsert {
+    self.set.find_or_insert(element)
   }
   #[inline]
   pub fn remove_item (&mut self, item : &T) -> Option <T> {
