@@ -176,6 +176,7 @@ impl <T : Ord> SortedVec <T> {
   /// Same as insert, except performance is O(1) when the element belongs at the
   /// back of the container. This avoids an O(log(N)) search for inserting
   /// elements at the back.
+  #[inline]
   pub fn push(&mut self, element: T) -> usize {
     if let Some(last) = self.vec.last() {
       let cmp = element.cmp(last);
@@ -195,6 +196,12 @@ impl <T : Ord> SortedVec <T> {
       self.vec.push(element);
       return 0;
     }
+  }
+  /// Reserves additional capacity in the underlying vector.
+  /// See std::vec::Vec::reserve.
+  #[inline]
+  pub fn reserve(&mut self, additional: usize) {
+    self.vec.reserve(additional);
   }
   /// Same as find_or_insert, except performance is O(1) when the element
   /// belongs at the back of the container.
@@ -360,6 +367,7 @@ impl <T : Ord> SortedSet <T> {
   /// Same as insert, except performance is O(1) when the element belongs at the
   /// back of the container. This avoids an O(log(N)) search for inserting
   /// elements at the back.
+  #[inline]
   pub fn push(&mut self, element: T) -> usize {
     if let Some(last) = self.vec.last() {
       let cmp = element.cmp(last);
@@ -383,6 +391,12 @@ impl <T : Ord> SortedSet <T> {
       self.set.vec.push(element);
       return 0;
     }
+  }
+  /// Reserves additional capacity in the underlying vector.
+  /// See std::vec::Vec::reserve.
+  #[inline]
+  pub fn reserve(&mut self, additional: usize) {
+    self.set.reserve(additional);
   }
   /// Same as find_or_insert, except performance is O(1) when the element
   /// belongs at the back of the container.
