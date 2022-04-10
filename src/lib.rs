@@ -121,19 +121,12 @@ impl FindOrInsert {
 
   /// Returns true if the element was found.
   pub fn is_found(&self) -> bool {
-    return matches!(self, FindOrInsert::Found(_));
+    matches!(self, FindOrInsert::Found(_))
   }
 
   /// Returns true if the element was inserted.
   pub fn is_inserted(&self) -> bool {
-    return matches!(self, FindOrInsert::Inserted(_));
-  }
-
-  pub fn map<T, F: FnOnce(usize) -> T>(&self, if_found: F, if_inserted:F) -> T {
-    match self {
-      FindOrInsert::Found(value) => if_found(*value),
-      FindOrInsert::Inserted(value) => if_inserted(*value)
-    }
+    matches!(self, FindOrInsert::Inserted(_))
   }
 }
 
