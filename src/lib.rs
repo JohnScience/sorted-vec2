@@ -473,21 +473,21 @@ mod tests {
     v.dedup();
     assert_eq!(v.len(), 4);
     assert_eq!(*ReverseSortedVec::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)]),
-      vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+      Vec::from_iter ([5, -10, 99, -11, 2, 17, 10].map (Reverse))),
+      Vec::from_iter ([99, 17, 10, 5, 2, -10, -11].map (Reverse)));
     assert_eq!(ReverseSortedVec::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)]),
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)].into());
+      Vec::from_iter ([5, -10, 99, -11, 2, 17, 10].map (Reverse))),
+      Vec::from_iter ([5, -10, 99, -11, 2, 17, 10].map (Reverse)).into());
     let mut v = ReverseSortedVec::new();
-    v.extend(vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)].into_iter());
-    assert_eq!(*v, vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+    v.extend([5, -10, 99, -11, 2, 17, 10].map (Reverse));
+    assert_eq!(v.as_slice(), [99, 17, 10, 5, 2, -10, -11].map (Reverse));
     let _ = v.mutate_vec (|v|{
       v[6] = Reverse(11);
       v[3] = Reverse(1);
     });
     assert_eq!(
       v.drain(..).collect::<Vec <Reverse<i32>>>(),
-      vec![Reverse(99), Reverse(17), Reverse(11), Reverse(10), Reverse(2), Reverse(1), Reverse(-10)]);
+      Vec::from_iter ([99, 17, 11, 10, 2, 1, -10].map (Reverse)));
   }
 
   #[test]
@@ -502,21 +502,21 @@ mod tests {
     assert_eq!(s.len(), 4);
     assert_eq!(s.binary_search (&Reverse(3)), Ok (3));
     assert_eq!(**ReverseSortedSet::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(99), Reverse(17), Reverse(10), Reverse(-10)]),
-      vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+      Vec::from_iter ([5, -10, 99, -11, 2, 99, 17, 10, -10].map (Reverse))),
+      Vec::from_iter ([99, 17, 10, 5, 2, -10, -11].map (Reverse)));
     assert_eq!(ReverseSortedSet::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(99), Reverse(17), Reverse(10), Reverse(-10)]),
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(99), Reverse(17), Reverse(10), Reverse(-10)].into());
+      Vec::from_iter ([5, -10, 99, -11, 2, 99, 17, 10, -10].map (Reverse))),
+      Vec::from_iter ([5, -10, 99, -11, 2, 99, 17, 10, -10].map (Reverse)).into());
     let mut s = ReverseSortedSet::new();
-    s.extend(vec![Reverse(5), Reverse(-10), Reverse(2), Reverse(99), Reverse(-11), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)].into_iter());
-    assert_eq!(**s, vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+    s.extend([5, -10, 2, 99, -11, -11, 2, 17, 10].map (Reverse));
+    assert_eq!(s.as_slice(), [99, 17, 10, 5, 2, -10, -11].map (Reverse));
     let _ = s.mutate_vec (|s|{
       s[6] = Reverse(17);
       s[3] = Reverse(1);
     });
     assert_eq!(
       s.drain(..).collect::<Vec <Reverse<i32>>>(),
-      vec![Reverse(99), Reverse(17), Reverse(10), Reverse(2), Reverse(1), Reverse(-10)]);
+      Vec::from_iter ([99, 17, 10, 2, 1, -10].map (Reverse)));
   }
   #[cfg(feature = "serde-nontransparent")]
   #[test]
