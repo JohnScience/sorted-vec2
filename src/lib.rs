@@ -275,21 +275,22 @@ impl <T : Ord> SortedSet <T> {
     SortedSet { set }
   }
   /// Insert an element into sorted position, returning the order index at which
-  /// it was placed.
+  /// it was placed. If an existing item was found it will be returned.
   #[inline]
-  pub fn insert (&mut self, element : T) -> usize {
-    match self.set.vec.binary_search(&element) {
+  pub fn replace (&mut self, mut element : T) -> (usize, Option <T>) {
+    match self.set.binary_search(&element) {
       Ok (existing_index) => {
         unsafe {
           // If binary_search worked correctly, then this must be the index of a
           // valid element to get from the vector.
-          *self.set.vec.get_unchecked_mut(existing_index) = element;
+          std::mem::swap (&mut element,
+            self.set.vec.get_unchecked_mut(existing_index))
         }
-        existing_index
+        (existing_index, Some (element))
       },
       Err (insert_index) => {
         self.set.vec.insert(insert_index, element);
-        insert_index
+        (insert_index, None)
       }
     }
   }
@@ -362,7 +363,7 @@ impl <T : Ord> std::ops::Deref for SortedSet <T> {
 impl <T : Ord> Extend <T> for SortedSet <T> {
   fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
     for t in iter {
-      let _ = self.insert (t);
+      let _ = self.find_or_insert (t);
     }
   }
 }
@@ -434,10 +435,10 @@ mod tests {
   #[test]
   fn test_sorted_set() {
     let mut s = SortedSet::new();
-    assert_eq!(s.insert (5), 0);
-    assert_eq!(s.insert (3), 0);
-    assert_eq!(s.insert (4), 1);
-    assert_eq!(s.insert (4), 1);
+    assert_eq!(s.replace (5), (0, None));
+    assert_eq!(s.replace (3), (0, None));
+    assert_eq!(s.replace (4), (1, None));
+    assert_eq!(s.replace (4), (1, Some (4)));
     assert_eq!(s.find_or_insert (4), FindOrInsert::Found (1));
     assert_eq!(s.find_or_insert (4).index(), 1);
     assert_eq!(s.len(), 3);
@@ -493,11 +494,11 @@ mod tests {
   #[test]
   fn test_reverse_sorted_set() {
     let mut s = ReverseSortedSet::new();
-    assert_eq!(s.insert (Reverse(5)), 0);
-    assert_eq!(s.insert (Reverse(3)), 1);
-    assert_eq!(s.insert (Reverse(4)), 1);
+    assert_eq!(s.replace (Reverse(5)), (0, None));
+    assert_eq!(s.replace (Reverse(3)), (1, None));
+    assert_eq!(s.replace (Reverse(4)), (1, None));
     assert_eq!(s.find_or_insert (Reverse(6)), FindOrInsert::Inserted (0));
-    assert_eq!(s.insert (Reverse(4)), 2);
+    assert_eq!(s.replace (Reverse(4)), (2, Some (Reverse(4))));
     assert_eq!(s.find_or_insert (Reverse(4)), FindOrInsert::Found (2));
     assert_eq!(s.len(), 4);
     assert_eq!(s.binary_search (&Reverse(3)), Ok (3));
