@@ -6,10 +6,10 @@
 
 ```
 let mut v = SortedVec::new();
-assert_eq!(v.insert (5), Ok (0));
-assert_eq!(v.insert (3), Ok (0));
-assert_eq!(v.insert (4), Ok (1));
-assert_eq!(v.insert (4), Err (1));
+assert_eq!(v.insert (5), 0);
+assert_eq!(v.insert (3), 0);
+assert_eq!(v.insert (4), 1);
+assert_eq!(v.insert (4), 1);
 assert_eq!(v.len(), 4);
 v.dedup();
 assert_eq!(v.len(), 3);

@@ -57,21 +57,6 @@ pub struct SortedSet <T : Ord> {
   set : SortedVec <T>
 }
 
-#[cfg(feature = "serde")]
-fn parse_reverse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
-  D : serde::Deserializer <'de>,
-  T : Ord + serde::Deserialize <'de>
-{
-  use serde::Deserialize;
-  use serde::de::Error;
-  let v = Vec::<T>::deserialize (deserializer)?;
-  if !v.is_sorted_by (|x,y| Some (x.cmp (y).reverse())) {
-    Err (D::Error::custom ("input sequence is not reverse sorted"))
-  } else {
-    Ok (v)
-  }
-}
-
 /// Value returned when find_or_insert is used.
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum FindOrInsert {
