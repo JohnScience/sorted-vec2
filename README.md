@@ -20,3 +20,19 @@ assert_eq!(*SortedVec::from_unsorted (
 ```
 
 Also provides sorted set containers only containing unique elements.
+
+## `serde` support
+
+`serde` de/serialization is an optional feature.
+
+By default, deserializing an unsorted container is an error.
+
+To sort on deserialization, tag the field with
+`#[serde(deserialize_with = "SortedVec::deserialize_unsorted")]`:
+```
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+pub struct Foo {
+  #[serde(deserialize_with = "SortedVec::deserialize_unsorted")]
+  pub v : SortedVec <u64>
+}
+```

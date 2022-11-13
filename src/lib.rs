@@ -27,25 +27,10 @@ pub mod partial;
   serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedVec <T : Ord> {
-  #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_vec"))]
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "SortedVec::parse_vec"))]
   #[cfg_attr(feature = "serde",
     serde(bound(deserialize = "T : serde::Deserialize <'de>")))]
   vec : Vec <T>
-}
-
-#[cfg(feature = "serde")]
-fn parse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
-  D : serde::Deserializer <'de>,
-  T : Ord + serde::Deserialize <'de>
-{
-  use serde::Deserialize;
-  use serde::de::Error;
-  let v = Vec::deserialize (deserializer)?;
-  if !v.is_sorted() {
-    Err (D::Error::custom ("input sequence is not sorted"))
-  } else {
-    Ok (v)
-  }
 }
 
 /// Forward sorted set
@@ -54,6 +39,9 @@ fn parse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
   serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedSet <T : Ord> {
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "SortedSet::parse_vec"))]
+  #[cfg_attr(feature = "serde",
+    serde(bound(deserialize = "T : serde::Deserialize <'de>")))]
   set : SortedVec <T>
 }
 
@@ -207,6 +195,43 @@ impl <T : Ord> SortedVec <T> {
     self.vec.sort_unstable();
     res
   }
+
+  /// Perform sorting on the input sequence when deserializing with `serde`.
+  ///
+  /// Use with `#[serde(deserialize_with = "SortedVec::deserialize_unsorted")]`:
+  /// ```text
+  /// #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+  /// pub struct Foo {
+  ///   #[serde(deserialize_with = "SortedVec::deserialize_unsorted")]
+  ///   pub v : SortedVec <u64>
+  /// }
+  /// ```
+  #[cfg(feature = "serde")]
+  pub fn deserialize_unsorted <'de, D> (deserializer : D)
+    -> Result <Self, D::Error>
+  where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    let v = Vec::deserialize (deserializer)?;
+    Ok (SortedVec::from_unsorted (v))
+  }
+
+  #[cfg(feature = "serde")]
+  fn parse_vec <'de, D> (deserializer : D) -> Result <Vec <T>, D::Error> where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    use serde::de::Error;
+    let v = Vec::deserialize (deserializer)?;
+    if !v.is_sorted() {
+      Err (D::Error::custom ("input sequence is not sorted"))
+    } else {
+      Ok (v)
+    }
+  }
 }
 impl <T : Ord> Default for SortedVec <T> {
   fn default() -> Self {
@@ -327,6 +352,51 @@ impl <T : Ord> SortedSet <T> {
     let res = self.set.mutate_vec (f);
     self.set.dedup();
     res
+  }
+
+  /// Perform deduplication and sorting on the input sequence when deserializing
+  /// with `serde`.
+  ///
+  /// Use with
+  /// `#[serde(deserialize_with = "SortedSet::deserialize_dedup_unsorted")]`:
+  /// ```text
+  /// #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+  /// pub struct Foo {
+  ///   #[serde(deserialize_with = "SortedSet::deserialize_dedup_unsorted")]
+  ///   pub s : SortedSet <u64>
+  /// }
+  /// ```
+  #[cfg(feature = "serde")]
+  pub fn deserialize_dedup_unsorted <'de, D> (deserializer : D)
+    -> Result <Self, D::Error>
+  where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    let v = Vec::deserialize (deserializer)?;
+    Ok (SortedSet::from_unsorted (v))
+  }
+
+  #[cfg(feature = "serde")]
+  fn parse_vec <'de, D> (deserializer : D)
+    -> Result <SortedVec <T>, D::Error>
+  where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    use serde::de::Error;
+    let mut vec = Vec::deserialize (deserializer)?;
+    let input_len = vec.len();
+    vec.dedup();
+    if vec.len() != input_len {
+      Err (D::Error::custom ("input set contains duplicate values"))
+    } else if !vec.is_sorted() {
+      Err (D::Error::custom ("input set is not sorted"))
+    } else {
+      Ok (SortedVec { vec })
+    }
   }
 }
 impl <T : Ord> Default for SortedSet <T> {
