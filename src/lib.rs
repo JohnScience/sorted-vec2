@@ -593,6 +593,37 @@ mod tests {
   }
 
   #[test]
+  fn test_sorted_vec_push() {
+    let mut v = SortedVec::new();
+    assert_eq!(v.push (5), 0);
+    assert_eq!(v.push (3), 0);
+    assert_eq!(v.push (4), 1);
+    assert_eq!(v.push (4), 1);
+    assert_eq!(v.find_or_push (4), FindOrInsert::Found (2));
+    assert_eq!(v.find_or_push (4).index(), 2);
+    assert_eq!(v.len(), 4);
+    v.dedup();
+    assert_eq!(v.len(), 3);
+    assert_eq!(v.binary_search (&3), Ok (0));
+    assert_eq!(*SortedVec::from_unsorted (
+      vec![5, -10, 99, -11, 2, 17, 10]),
+      vec![-11, -10, 2, 5, 10, 17, 99]);
+    assert_eq!(SortedVec::from_unsorted (
+      vec![5, -10, 99, -11, 2, 17, 10]),
+      vec![5, -10, 99, -11, 2, 17, 10].into());
+    let mut v = SortedVec::new();
+    v.extend(vec![5, -10, 99, -11, 2, 17, 10].into_iter());
+    assert_eq!(*v, vec![-11, -10, 2, 5, 10, 17, 99]);
+    let _ = v.mutate_vec (|v|{
+      v[0] = 11;
+      v[3] = 1;
+    });
+    assert_eq!(
+      v.drain(..).collect::<Vec <i32>>(),
+      vec![-10, 1, 2, 10, 11, 17, 99]);
+  }
+
+  #[test]
   fn test_sorted_set() {
     let mut s = SortedSet::new();
     assert_eq!(s.replace (5), (0, None));
@@ -601,6 +632,35 @@ mod tests {
     assert_eq!(s.replace (4), (1, Some (4)));
     assert_eq!(s.find_or_insert (4), FindOrInsert::Found (1));
     assert_eq!(s.find_or_insert (4).index(), 1);
+    assert_eq!(s.len(), 3);
+    assert_eq!(s.binary_search (&3), Ok (0));
+    assert_eq!(**SortedSet::from_unsorted (
+      vec![5, -10, 99, -10, -11, 10, 2, 17, 10]),
+      vec![-11, -10, 2, 5, 10, 17, 99]);
+    assert_eq!(SortedSet::from_unsorted (
+      vec![5, -10, 99, -10, -11, 10, 2, 17, 10]),
+      vec![5, -10, 99, -10, -11, 10, 2, 17, 10].into());
+    let mut s = SortedSet::new();
+    s.extend(vec![5, -11, -10, 99, -11, 2, 17, 2, 10].into_iter());
+    assert_eq!(**s, vec![-11, -10, 2, 5, 10, 17, 99]);
+    let _ = s.mutate_vec (|s|{
+      s[0] = 5;
+      s[3] = 1;
+    });
+    assert_eq!(
+      s.drain(..).collect::<Vec <i32>>(),
+      vec![-10, 1, 2, 5, 10, 17, 99]);
+  }
+
+  #[test]
+  fn test_sorted_set_push() {
+    let mut s = SortedSet::new();
+    assert_eq!(s.push (5), (0, None));
+    assert_eq!(s.push (3), (0, None));
+    assert_eq!(s.push (4), (1, None));
+    assert_eq!(s.push (4), (1, Some (4)));
+    assert_eq!(s.find_or_push (4), FindOrInsert::Found (1));
+    assert_eq!(s.find_or_push (4).index(), 1);
     assert_eq!(s.len(), 3);
     assert_eq!(s.binary_search (&3), Ok (0));
     assert_eq!(**SortedSet::from_unsorted (
