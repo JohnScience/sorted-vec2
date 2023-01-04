@@ -368,32 +368,34 @@ impl <T : Ord> SortedSet <T> {
   pub fn find_or_insert (&mut self, element : T) -> FindOrInsert {
     self.set.find_or_insert (element)
   }
-  /// Same as insert, except performance is O(1) when the element belongs at the
-  /// back of the container. This avoids an O(log(N)) search for inserting
+  /// Same as replace, except performance is O(1) when the element belongs at
+  /// the back of the container. This avoids an O(log(N)) search for inserting
   /// elements at the back.
   #[inline]
-  pub fn push(&mut self, element: T) -> usize {
+  pub fn push(&mut self, element: T) -> (usize, Option<T>) {
     if let Some(last) = self.vec.last() {
       let cmp = element.cmp(last);
       if cmp == std::cmp::Ordering::Greater {
-        // The new element is greater than the current last eleement, so we can
+        // The new element is greater than the current last element, so we can
         // simply push it onto the vec.
         self.set.vec.push(element);
-        return self.vec.len() - 1;
+        return (self.vec.len() - 1, None);
       } else if cmp == std::cmp::Ordering::Equal {
         // The new element is equal to the last element, so we can simply return
-        // the last index in the vec.
-        return self.vec.len() - 1;
+        // the last index in the vec and the value that is being replaced.
+        let original = self.set.vec.pop();
+        self.set.vec.push(element);
+        return (self.vec.len() - 1, original);
       } else {
         // The new element is less than the last element, so we need to fall
         // back on the regular insert function.
-        return self.insert(element);
+        return self.replace(element);
       }
     } else {
       // If there is no last element then the container must be empty, so we can
       // simply push the element and return its index, which must be 0.
       self.set.vec.push(element);
-      return 0;
+      return (0, None);
     }
   }
   /// Reserves additional capacity in the underlying vector.
