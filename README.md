@@ -6,10 +6,10 @@
 
 ```
 let mut v = SortedVec::new();
-assert_eq!(v.insert (5), Ok (0));
-assert_eq!(v.insert (3), Ok (0));
-assert_eq!(v.insert (4), Ok (1));
-assert_eq!(v.insert (4), Err (1));
+assert_eq!(v.insert (5), 0);
+assert_eq!(v.insert (3), 0);
+assert_eq!(v.insert (4), 1);
+assert_eq!(v.insert (4), 1);
 assert_eq!(v.len(), 4);
 v.dedup();
 assert_eq!(v.len(), 3);
@@ -20,3 +20,19 @@ assert_eq!(*SortedVec::from_unsorted (
 ```
 
 Also provides sorted set containers only containing unique elements.
+
+## `serde` support
+
+`serde` de/serialization is an optional feature.
+
+By default, deserializing an unsorted container is an error.
+
+To sort on deserialization, tag the field with
+`#[serde(deserialize_with = "SortedVec::deserialize_unsorted")]`:
+```
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+pub struct Foo {
+  #[serde(deserialize_with = "SortedVec::deserialize_unsorted")]
+  pub v : SortedVec <u64>
+}
+```

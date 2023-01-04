@@ -27,25 +27,10 @@ pub mod partial;
   serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedVec <T : Ord> {
-  #[cfg_attr(feature = "serde", serde(deserialize_with = "parse_vec"))]
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "SortedVec::parse_vec"))]
   #[cfg_attr(feature = "serde",
     serde(bound(deserialize = "T : serde::Deserialize <'de>")))]
   vec : Vec <T>
-}
-
-#[cfg(feature = "serde")]
-fn parse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
-  D : serde::Deserializer <'de>,
-  T : Ord + serde::Deserialize <'de>
-{
-  use serde::Deserialize;
-  use serde::de::Error;
-  let v = Vec::deserialize (deserializer)?;
-  if !v.is_sorted() {
-    Err (D::Error::custom ("input sequence is not sorted"))
-  } else {
-    Ok (v)
-  }
 }
 
 /// Forward sorted set
@@ -54,22 +39,10 @@ fn parse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
   serde(transparent))]
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct SortedSet <T : Ord> {
+  #[cfg_attr(feature = "serde", serde(deserialize_with = "SortedSet::parse_vec"))]
+  #[cfg_attr(feature = "serde",
+    serde(bound(deserialize = "T : serde::Deserialize <'de>")))]
   set : SortedVec <T>
-}
-
-#[cfg(feature = "serde")]
-fn parse_reverse_vec <'de, D, T> (deserializer : D) -> Result <Vec <T>, D::Error> where
-  D : serde::Deserializer <'de>,
-  T : Ord + serde::Deserialize <'de>
-{
-  use serde::Deserialize;
-  use serde::de::Error;
-  let v = Vec::<T>::deserialize (deserializer)?;
-  if !v.is_sorted_by (|x,y| Some (x.cmp (y).reverse())) {
-    Err (D::Error::custom ("input sequence is not reverse sorted"))
-  } else {
-    Ok (v)
-  }
 }
 
 /// Value returned when find_or_insert is used.
@@ -121,19 +94,12 @@ impl FindOrInsert {
 
   /// Returns true if the element was found.
   pub fn is_found(&self) -> bool {
-    return matches!(self, FindOrInsert::Found(_));
+    matches!(self, FindOrInsert::Found(_))
   }
 
   /// Returns true if the element was inserted.
   pub fn is_inserted(&self) -> bool {
-    return matches!(self, FindOrInsert::Inserted(_));
-  }
-
-  pub fn map<T, F: FnOnce(usize) -> T>(&self, if_found: F, if_inserted:F) -> T {
-    match self {
-      FindOrInsert::Found(value) => if_found(*value),
-      FindOrInsert::Inserted(value) => if_inserted(*value)
-    }
+    matches!(self, FindOrInsert::Inserted(_))
   }
 }
 
@@ -287,6 +253,43 @@ impl <T : Ord> SortedVec <T> {
   pub unsafe fn get_unchecked_mut_vec(&mut self) -> &mut Vec<T> {
     return &mut self.vec;
   }
+
+  /// Perform sorting on the input sequence when deserializing with `serde`.
+  ///
+  /// Use with `#[serde(deserialize_with = "SortedVec::deserialize_unsorted")]`:
+  /// ```text
+  /// #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+  /// pub struct Foo {
+  ///   #[serde(deserialize_with = "SortedVec::deserialize_unsorted")]
+  ///   pub v : SortedVec <u64>
+  /// }
+  /// ```
+  #[cfg(feature = "serde")]
+  pub fn deserialize_unsorted <'de, D> (deserializer : D)
+    -> Result <Self, D::Error>
+  where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    let v = Vec::deserialize (deserializer)?;
+    Ok (SortedVec::from_unsorted (v))
+  }
+
+  #[cfg(feature = "serde")]
+  fn parse_vec <'de, D> (deserializer : D) -> Result <Vec <T>, D::Error> where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    use serde::de::Error;
+    let v = Vec::deserialize (deserializer)?;
+    if !v.is_sorted() {
+      Err (D::Error::custom ("input sequence is not sorted"))
+    } else {
+      Ok (v)
+    }
+  }
 }
 impl <T : Ord> Default for SortedVec <T> {
   fn default() -> Self {
@@ -340,21 +343,22 @@ impl <T : Ord> SortedSet <T> {
     SortedSet { set }
   }
   /// Insert an element into sorted position, returning the order index at which
-  /// it was placed.
+  /// it was placed. If an existing item was found it will be returned.
   #[inline]
-  pub fn insert (&mut self, element : T) -> usize {
-    match self.set.vec.binary_search(&element) {
+  pub fn replace (&mut self, mut element : T) -> (usize, Option <T>) {
+    match self.set.binary_search(&element) {
       Ok (existing_index) => {
         unsafe {
           // If binary_search worked correctly, then this must be the index of a
           // valid element to get from the vector.
-          *self.set.vec.get_unchecked_mut(existing_index) = element;
+          std::mem::swap (&mut element,
+            self.set.vec.get_unchecked_mut(existing_index))
         }
-        existing_index
+        (existing_index, Some (element))
       },
       Err (insert_index) => {
         self.set.vec.insert(insert_index, element);
-        insert_index
+        (insert_index, None)
       }
     }
   }
@@ -452,6 +456,51 @@ impl <T : Ord> SortedSet <T> {
   pub unsafe fn get_unchecked_mut_vec(&mut self) -> &mut Vec<T> {
     return self.set.get_unchecked_mut_vec();
   }
+
+  /// Perform deduplication and sorting on the input sequence when deserializing
+  /// with `serde`.
+  ///
+  /// Use with
+  /// `#[serde(deserialize_with = "SortedSet::deserialize_dedup_unsorted")]`:
+  /// ```text
+  /// #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+  /// pub struct Foo {
+  ///   #[serde(deserialize_with = "SortedSet::deserialize_dedup_unsorted")]
+  ///   pub s : SortedSet <u64>
+  /// }
+  /// ```
+  #[cfg(feature = "serde")]
+  pub fn deserialize_dedup_unsorted <'de, D> (deserializer : D)
+    -> Result <Self, D::Error>
+  where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    let v = Vec::deserialize (deserializer)?;
+    Ok (SortedSet::from_unsorted (v))
+  }
+
+  #[cfg(feature = "serde")]
+  fn parse_vec <'de, D> (deserializer : D)
+    -> Result <SortedVec <T>, D::Error>
+  where
+    D : serde::Deserializer <'de>,
+    T : serde::Deserialize <'de>
+  {
+    use serde::Deserialize;
+    use serde::de::Error;
+    let mut vec = Vec::deserialize (deserializer)?;
+    let input_len = vec.len();
+    vec.dedup();
+    if vec.len() != input_len {
+      Err (D::Error::custom ("input set contains duplicate values"))
+    } else if !vec.is_sorted() {
+      Err (D::Error::custom ("input set is not sorted"))
+    } else {
+      Ok (SortedVec { vec })
+    }
+  }
 }
 impl <T : Ord> Default for SortedSet <T> {
   fn default() -> Self {
@@ -472,7 +521,7 @@ impl <T : Ord> std::ops::Deref for SortedSet <T> {
 impl <T : Ord> Extend <T> for SortedSet <T> {
   fn extend <I : IntoIterator <Item = T>> (&mut self, iter : I) {
     for t in iter {
-      let _ = self.insert (t);
+      let _ = self.find_or_insert (t);
     }
   }
 }
@@ -544,10 +593,10 @@ mod tests {
   #[test]
   fn test_sorted_set() {
     let mut s = SortedSet::new();
-    assert_eq!(s.insert (5), 0);
-    assert_eq!(s.insert (3), 0);
-    assert_eq!(s.insert (4), 1);
-    assert_eq!(s.insert (4), 1);
+    assert_eq!(s.replace (5), (0, None));
+    assert_eq!(s.replace (3), (0, None));
+    assert_eq!(s.replace (4), (1, None));
+    assert_eq!(s.replace (4), (1, Some (4)));
     assert_eq!(s.find_or_insert (4), FindOrInsert::Found (1));
     assert_eq!(s.find_or_insert (4).index(), 1);
     assert_eq!(s.len(), 3);
@@ -583,50 +632,50 @@ mod tests {
     v.dedup();
     assert_eq!(v.len(), 4);
     assert_eq!(*ReverseSortedVec::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)]),
-      vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+      Vec::from_iter ([5, -10, 99, -11, 2, 17, 10].map (Reverse))),
+      Vec::from_iter ([99, 17, 10, 5, 2, -10, -11].map (Reverse)));
     assert_eq!(ReverseSortedVec::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)]),
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)].into());
+      Vec::from_iter ([5, -10, 99, -11, 2, 17, 10].map (Reverse))),
+      Vec::from_iter ([5, -10, 99, -11, 2, 17, 10].map (Reverse)).into());
     let mut v = ReverseSortedVec::new();
-    v.extend(vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)].into_iter());
-    assert_eq!(*v, vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+    v.extend([5, -10, 99, -11, 2, 17, 10].map (Reverse));
+    assert_eq!(v.as_slice(), [99, 17, 10, 5, 2, -10, -11].map (Reverse));
     let _ = v.mutate_vec (|v|{
       v[6] = Reverse(11);
       v[3] = Reverse(1);
     });
     assert_eq!(
       v.drain(..).collect::<Vec <Reverse<i32>>>(),
-      vec![Reverse(99), Reverse(17), Reverse(11), Reverse(10), Reverse(2), Reverse(1), Reverse(-10)]);
+      Vec::from_iter ([99, 17, 11, 10, 2, 1, -10].map (Reverse)));
   }
 
   #[test]
   fn test_reverse_sorted_set() {
     let mut s = ReverseSortedSet::new();
-    assert_eq!(s.insert (Reverse(5)), 0);
-    assert_eq!(s.insert (Reverse(3)), 1);
-    assert_eq!(s.insert (Reverse(4)), 1);
+    assert_eq!(s.replace (Reverse(5)), (0, None));
+    assert_eq!(s.replace (Reverse(3)), (1, None));
+    assert_eq!(s.replace (Reverse(4)), (1, None));
     assert_eq!(s.find_or_insert (Reverse(6)), FindOrInsert::Inserted (0));
-    assert_eq!(s.insert (Reverse(4)), 2);
+    assert_eq!(s.replace (Reverse(4)), (2, Some (Reverse(4))));
     assert_eq!(s.find_or_insert (Reverse(4)), FindOrInsert::Found (2));
     assert_eq!(s.len(), 4);
     assert_eq!(s.binary_search (&Reverse(3)), Ok (3));
     assert_eq!(**ReverseSortedSet::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(99), Reverse(17), Reverse(10), Reverse(-10)]),
-      vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+      Vec::from_iter ([5, -10, 99, -11, 2, 99, 17, 10, -10].map (Reverse))),
+      Vec::from_iter ([99, 17, 10, 5, 2, -10, -11].map (Reverse)));
     assert_eq!(ReverseSortedSet::from_unsorted (
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(99), Reverse(17), Reverse(10), Reverse(-10)]),
-      vec![Reverse(5), Reverse(-10), Reverse(99), Reverse(-11), Reverse(2), Reverse(99), Reverse(17), Reverse(10), Reverse(-10)].into());
+      Vec::from_iter ([5, -10, 99, -11, 2, 99, 17, 10, -10].map (Reverse))),
+      Vec::from_iter ([5, -10, 99, -11, 2, 99, 17, 10, -10].map (Reverse)).into());
     let mut s = ReverseSortedSet::new();
-    s.extend(vec![Reverse(5), Reverse(-10), Reverse(2), Reverse(99), Reverse(-11), Reverse(-11), Reverse(2), Reverse(17), Reverse(10)].into_iter());
-    assert_eq!(**s, vec![Reverse(99), Reverse(17), Reverse(10), Reverse(5), Reverse(2), Reverse(-10), Reverse(-11)]);
+    s.extend([5, -10, 2, 99, -11, -11, 2, 17, 10].map (Reverse));
+    assert_eq!(s.as_slice(), [99, 17, 10, 5, 2, -10, -11].map (Reverse));
     let _ = s.mutate_vec (|s|{
       s[6] = Reverse(17);
       s[3] = Reverse(1);
     });
     assert_eq!(
       s.drain(..).collect::<Vec <Reverse<i32>>>(),
-      vec![Reverse(99), Reverse(17), Reverse(10), Reverse(2), Reverse(1), Reverse(-10)]);
+      Vec::from_iter ([99, 17, 10, 2, 1, -10].map (Reverse)));
   }
   #[cfg(feature = "serde-nontransparent")]
   #[test]
