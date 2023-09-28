@@ -1,10 +1,12 @@
-# `sorted_vec`
+# `sorted_vec2`
+
+Maintained alternative to [`sorted-vec`](https://crates.io/crates/sorted-vec).
 
 > Create and maintain collections of sorted elements.
 
-[Documentation](https://docs.rs/sorted-vec)
+[Documentation](https://docs.rs/sorted-vec2)
 
-```
+```rust
 let mut v = SortedVec::new();
 assert_eq!(v.insert (5), 0);
 assert_eq!(v.insert (3), 0);
@@ -29,7 +31,8 @@ By default, deserializing an unsorted container is an error.
 
 To sort on deserialization, tag the field with
 `#[serde(deserialize_with = "SortedVec::deserialize_unsorted")]`:
-```
+
+```rust
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub struct Foo {
   #[serde(deserialize_with = "SortedVec::deserialize_unsorted")]
